@@ -19,6 +19,7 @@
 	import { ROOM_NAME_MAX_LENGTH } from '#lib/constants.js';
 
 	import Message from '#lib/components/message.svelte';
+	import type { NewMessageT } from '#lib/components/new-message.svelte';
 
 	const MESSAGES_COUNT = 15;
 
@@ -124,32 +125,19 @@
 		})
 	);
 
-	interface HandleCreateMessageArgs {
-		text: string;
-		imageDataBlob: Blob;
-	}
+	// errors propagate to NewMessage, which shows them
+	async function handleCreateMessage({ text, imageDataBlob }: NewMessageT) {
+		const newMessageRef = doc(roomMessagesRef);
 
-	async function handleCreateMessage({ text, imageDataBlob }: HandleCreateMessageArgs) {
-		try {
-			// Generate a new document ID for the message
-			const newMessageRef = doc(roomMessagesRef);
-			const messageId = newMessageRef.id;
+		const storageRef = ref(firebaseStorage, `messages/${newMessageRef.id}/filmstrip.png`);
+		await uploadBytes(storageRef, imageDataBlob);
+		const imageUrl = await getDownloadURL(storageRef);
 
-			// Upload the image to Firebase Storage
-			const storageRef = ref(firebaseStorage, `messages/${messageId}/filmstrip.png`);
-			await uploadBytes(storageRef, imageDataBlob); // Assuming imageDataURL is a data URL
-
-			// Get the download URL of the uploaded image
-			const imageUrl = await getDownloadURL(storageRef);
-
-			await setDoc(newMessageRef, {
-				createdAt: serverTimestamp(),
-				imageUrl: imageUrl,
-				text
-			});
-		} catch (addMessageError) {
-			console.error('Error adding message to room', addMessageError);
-		}
+		await setDoc(newMessageRef, {
+			createdAt: serverTimestamp(),
+			imageUrl,
+			text
+		});
 	}
 
 	async function handleNameBlur() {

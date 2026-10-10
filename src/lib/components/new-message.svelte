@@ -1,3 +1,10 @@
+<script lang="ts" module>
+	export interface NewMessageT {
+		text: string;
+		imageDataBlob: Blob;
+	}
+</script>
+
 <script lang="ts">
 	import uPNG from 'upng-js';
 	import { slide } from 'svelte/transition';
@@ -16,7 +23,7 @@
 	const TOTAL_FRAMES = 20;
 
 	interface Props {
-		onCreateMessage: Function;
+		onCreateMessage: (message: NewMessageT) => Promise<void>;
 	}
 
 	let { onCreateMessage }: Props = $props();
@@ -24,17 +31,26 @@
 	let videoElement: HTMLVideoElement | undefined = $state();
 	let inputMessage: string = $state('');
 	let isCapturing: boolean = $state(false);
+	let isSending: boolean = $state(false);
+	let sendError: string | null = $state(null);
 	let currentFrameNumber = $state(0);
 	let progress = $derived((currentFrameNumber / TOTAL_FRAMES) * 100);
 
 	async function handleSubmit(event: Event) {
 		event.preventDefault();
 
+		if (isCapturing || isSending) {
+			return;
+		}
+
 		if (!videoElement) {
 			console.error('No camera to record from for message.');
 			return;
 		}
 
+		sendError = null;
+
+		let imageDataBlob: Blob;
 		try {
 			isCapturing = true;
 			function handleFrame(frameNumber: number) {
@@ -53,19 +69,26 @@
 				filmstripData.height,
 				2 + 1
 			);
-			const imageDataBlob = new Blob([optimizedImageArrayBuffer], { type: 'image/png' });
-
-			onCreateMessage({
-				text: inputMessage,
-				imageDataBlob
-			});
-
-			inputMessage = '';
+			imageDataBlob = new Blob([optimizedImageArrayBuffer], { type: 'image/png' });
 		} catch (error) {
 			console.error('error generating filmstrip', error);
+			sendError = "Couldn't record a clip. Try again.";
+			return;
 		} finally {
 			isCapturing = false;
 			currentFrameNumber = 0;
+		}
+
+		try {
+			isSending = true;
+			await onCreateMessage({ text: inputMessage, imageDataBlob });
+			inputMessage = '';
+		} catch (error) {
+			console.error('Error sending message', error);
+			// keep the text so the user can retry
+			sendError = "Couldn't send your message. Try again.";
+		} finally {
+			isSending = false;
 		}
 	}
 
@@ -103,7 +126,8 @@
 			<span class="fakeInput__action">
 				<Button
 					type="submit"
-					disabled={!$mediaStream || isCapturing || !$webcamEnabled}
+					disabled={!$mediaStream || isCapturing || isSending || !$webcamEnabled}
+					loading={isSending}
 					tall={true}
 				>
 					<SendArrowIcon />
@@ -111,6 +135,9 @@
 			</span>
 		</div>
 	</form>
+	{#if sendError}
+		<p class="sendError" role="alert">{sendError}</p>
+	{/if}
 	<div class="enableWebcamMessage__container">
 		<WebcamPermissionButton />
 	</div>
@@ -195,6 +222,15 @@
 		grid-area: main;
 		align-self: end;
 		z-index: 3;
+	}
+
+	.sendError {
+		margin: 0;
+		padding: 0.25em 0.5em;
+		color: var(--black);
+		font-size: 0.8em;
+		font-style: italic;
+		text-align: center;
 	}
 
 	.enableWebcamMessage__container {
