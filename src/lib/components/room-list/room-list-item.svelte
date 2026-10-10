@@ -12,11 +12,9 @@
 	const { id, name }: PropsT = $props();
 
 	function deleteRoomFromHistory(roomId: string) {
-		const updatedRoomHistory = {
-			...$roomHistory
-		};
+		const updatedRoomHistory = { ...roomHistory.current };
 		delete updatedRoomHistory[roomId];
-		roomHistory.set(updatedRoomHistory);
+		roomHistory.current = updatedRoomHistory;
 	}
 
 	function handleRemoveClick() {

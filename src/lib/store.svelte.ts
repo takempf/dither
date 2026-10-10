@@ -1,41 +1,115 @@
-import { derived, readable, writable, type Readable, type Writable } from 'svelte/store';
-import store from 'store2';
+import { on } from 'svelte/events';
+import { createSubscriber } from 'svelte/reactivity';
 
-import type { CameraResolutionId, ColorPaletteId } from './constants.js';
 import {
+	CAMERA_RESOLUTIONS,
 	COLOR_PALETTES,
-	STORE_WEBCAM_ENABLED,
+	STORE_CAMERA_RESOLUTION_ID,
 	STORE_COLOR_PALETTE_ID,
 	STORE_ROOM_HISTORY,
-	STORE_CAMERA_RESOLUTION_ID,
-	CAMERA_RESOLUTIONS
+	STORE_WEBCAM_ENABLED,
+	type CameraResolutionId,
+	type ColorPaletteId
 } from '#lib/constants.js';
 
-// Ensure `document` is available in the browser
-export const pageVisible: Readable<boolean> = readable(
-	typeof document !== 'undefined' && !document.hidden,
-	(set) => {
-		if (typeof document !== 'undefined') {
-			function handleVisibilityChange() {
-				set(!document.hidden);
+// A value saved to localStorage as JSON. Falls back when storage is blocked or the value is invalid.
+class PersistedState<T> {
+	#key: string;
+	#value = $state.raw<T>() as T;
+
+	constructor(key: string, isValid: (value: unknown) => value is T, fallback: T) {
+		this.#key = key;
+		this.#value = fallback;
+
+		try {
+			const stored = localStorage.getItem(key);
+			if (stored !== null) {
+				const value: unknown = JSON.parse(stored);
+				if (isValid(value)) {
+					this.#value = value;
+				}
 			}
-
-			document.addEventListener('visibilitychange', handleVisibilityChange, false);
-
-			return () => {
-				document.removeEventListener('visibilitychange', handleVisibilityChange, false);
-			};
+		} catch (error) {
+			console.warn(`Could not read ${key} from localStorage`, error);
 		}
 	}
+
+	get current(): T {
+		return this.#value;
+	}
+
+	set current(value: T) {
+		this.#value = value;
+
+		try {
+			localStorage.setItem(this.#key, JSON.stringify(value));
+		} catch (error) {
+			console.warn(`Could not save ${this.#key} to localStorage`, error);
+		}
+	}
+}
+
+function isBoolean(value: unknown): value is boolean {
+	return typeof value === 'boolean';
+}
+
+function isCameraResolutionId(value: unknown): value is CameraResolutionId {
+	return typeof value === 'string' && Object.hasOwn(CAMERA_RESOLUTIONS, value);
+}
+
+function isColorPaletteId(value: unknown): value is ColorPaletteId {
+	return typeof value === 'string' && Object.hasOwn(COLOR_PALETTES, value);
+}
+
+interface RoomHistoryEntry {
+	name: string;
+	lastSeen: number;
+}
+type RoomHistoryT = Record<string, RoomHistoryEntry>;
+
+function isRoomHistory(value: unknown): value is RoomHistoryT {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export const webcamEnabled = new PersistedState(STORE_WEBCAM_ENABLED, isBoolean, false);
+
+export const cameraResolutionId = new PersistedState<CameraResolutionId>(
+	STORE_CAMERA_RESOLUTION_ID,
+	isCameraResolutionId,
+	'320 x 240'
 );
 
-// Type the webcamEnabled store
-export const webcamEnabled: Writable<boolean> = writable(store.get(STORE_WEBCAM_ENABLED) || false);
+// replace the whole object to update, so the change is saved
+export const roomHistory = new PersistedState<RoomHistoryT>(STORE_ROOM_HISTORY, isRoomHistory, {});
 
-webcamEnabled.subscribe((value) => store.set(STORE_WEBCAM_ENABLED, value));
+class ColorPaletteState {
+	#id = new PersistedState<ColorPaletteId>(STORE_COLOR_PALETTE_ID, isColorPaletteId, 'JD093A');
 
-// Type the mediaDeviceId store, allowing for null initially
-export const mediaDeviceId: Writable<string | undefined> = writable(undefined);
+	get id(): ColorPaletteId {
+		return this.#id.current;
+	}
+
+	set id(id: ColorPaletteId) {
+		this.#id.current = id;
+	}
+
+	readonly colors = $derived(COLOR_PALETTES[this.id]);
+}
+
+export const colorPalette = new ColorPaletteState();
+
+class PageVisibility {
+	#subscribe = createSubscriber((update) => on(document, 'visibilitychange', update));
+
+	get visible(): boolean {
+		this.#subscribe();
+		return !document.hidden;
+	}
+}
+
+export const pageVisibility = new PageVisibility();
+
+type WebcamStatusT = 'initial' | 'requesting' | 'active' | 'error';
 
 function stopMediaStream(stream: MediaStream | null) {
 	stream?.getTracks().forEach((track) => track.stop());
@@ -43,7 +117,7 @@ function stopMediaStream(stream: MediaStream | null) {
 
 async function getMediaStream(deviceId: string | undefined): Promise<MediaStream | null> {
 	try {
-		const userMediaStream = await navigator.mediaDevices.getUserMedia({
+		return await navigator.mediaDevices.getUserMedia({
 			audio: false,
 			video: {
 				deviceId: { ideal: deviceId },
@@ -53,151 +127,97 @@ async function getMediaStream(deviceId: string | undefined): Promise<MediaStream
 				height: { ideal: 480 }
 			}
 		});
-		return userMediaStream;
 	} catch (error) {
 		console.error('Unable to activate webcam:', error);
-		return null; // Indicate failure by returning null
+		return null;
 	}
 }
 
-// Define the type for the mediaStream store's value
-interface DerivedMediaStream {
-	status: 'initial' | 'requesting' | 'active' | 'error';
-	stream: MediaStream | null;
-}
-
-export const mediaStream: Readable<DerivedMediaStream> = derived<
-	[typeof mediaDeviceId, typeof webcamEnabled],
-	DerivedMediaStream
->(
-	[mediaDeviceId, webcamEnabled],
-	([$mediaDeviceId, $webcamEnabled], set) => {
-		if (!$webcamEnabled) {
-			set({
-				status: 'initial',
-				stream: null
-			});
-			return;
-		}
-
-		let cancelled = false;
-		let activeStream: MediaStream | null = null;
-
-		set({
-			status: 'requesting',
-			stream: null
-		});
-
-		getMediaStream($mediaDeviceId).then((userMediaStream) => {
-			// stream arrived after the last subscriber left or inputs changed
-			if (cancelled) {
-				stopMediaStream(userMediaStream);
-				return;
-			}
-
-			if (!userMediaStream) {
-				set({
-					status: 'error',
-					stream: null
-				});
-				return;
-			}
-
-			activeStream = userMediaStream;
-			set({
-				status: 'active',
-				stream: userMediaStream
-			});
-		});
-
-		// runs when inputs change and when the last subscriber leaves, so the camera turns off
-		return () => {
-			cancelled = true;
-			stopMediaStream(activeStream);
-		};
-	},
-	{
-		status: 'initial',
-		stream: null
-	}
-);
-
-async function getCameras() {
+async function getCameras(): Promise<MediaDeviceInfo[]> {
 	try {
 		const mediaDevices = await navigator.mediaDevices.enumerateDevices();
 		return mediaDevices.filter((mediaDevice) => mediaDevice.kind === 'videoinput');
 	} catch (error) {
 		console.error('Could not get the devices', error);
-		return []; // Return an empty array on error
+		return [];
 	}
 }
 
-// Type the 'cameras' store
-export const cameras: Readable<MediaDeviceInfo[]> = derived<typeof mediaStream, MediaDeviceInfo[]>(
-	mediaStream,
-	($mediaStream, set) => {
-		if (!$mediaStream?.stream) {
+// The camera runs only while something reads it and webcamEnabled is on, so it turns off when
+// the last component using it goes away.
+class Webcam {
+	deviceId: string | undefined = $state();
+
+	#status: WebcamStatusT = $state('initial');
+	#stream: MediaStream | null = $state.raw(null);
+	#cameras: MediaDeviceInfo[] = $state.raw([]);
+
+	#subscribe = createSubscriber(() =>
+		$effect.root(() => {
+			$effect(() => this.#start(webcamEnabled.current, this.deviceId));
+		})
+	);
+
+	get status(): WebcamStatusT {
+		this.#subscribe();
+		return this.#status;
+	}
+
+	get stream(): MediaStream | null {
+		this.#subscribe();
+		return this.#stream;
+	}
+
+	get cameras(): MediaDeviceInfo[] {
+		this.#subscribe();
+		return this.#cameras;
+	}
+
+	// returns a cleanup that stops the stream, run when inputs change or the last reader leaves
+	#start(enabled: boolean, deviceId: string | undefined) {
+		this.#stream = null;
+
+		if (!enabled) {
+			this.#status = 'initial';
 			return;
 		}
 
-		async function handleDeviceChange() {
-			const cameras = await getCameras();
-			set(cameras);
-		}
+		this.#status = 'requesting';
 
-		handleDeviceChange();
+		let stopped = false;
+		let activeStream: MediaStream | null = null;
+		let removeDeviceChangeListener: (() => void) | undefined;
 
-		navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+		const updateCameras = async () => {
+			this.#cameras = await getCameras();
+		};
+
+		getMediaStream(deviceId).then((userMediaStream) => {
+			// stream arrived after the inputs changed or the last reader left
+			if (stopped) {
+				stopMediaStream(userMediaStream);
+				return;
+			}
+
+			if (!userMediaStream) {
+				this.#status = 'error';
+				return;
+			}
+
+			activeStream = userMediaStream;
+			this.#stream = userMediaStream;
+			this.#status = 'active';
+
+			updateCameras();
+			removeDeviceChangeListener = on(navigator.mediaDevices, 'devicechange', updateCameras);
+		});
 
 		return () => {
-			navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+			stopped = true;
+			stopMediaStream(activeStream);
+			removeDeviceChangeListener?.();
 		};
-	},
-	[]
-);
-
-// Type the cameraResolutionId store
-const storedCameraResolutionId = store.get(STORE_CAMERA_RESOLUTION_ID);
-const initialCameraResolutionId =
-	storedCameraResolutionId && Object.hasOwn(CAMERA_RESOLUTIONS, storedCameraResolutionId)
-		? storedCameraResolutionId
-		: '320 x 240';
-export const cameraResolutionId: Writable<CameraResolutionId> = writable(initialCameraResolutionId);
-
-cameraResolutionId.subscribe((newCameraResolutionId) =>
-	store.set(STORE_CAMERA_RESOLUTION_ID, newCameraResolutionId)
-);
-
-// Type the colorPaletteId store
-export const colorPaletteId: Writable<ColorPaletteId> = writable(
-	store.get(STORE_COLOR_PALETTE_ID) || 'JD093A'
-);
-
-colorPaletteId.subscribe((newColorPaletteId) =>
-	store.set(STORE_COLOR_PALETTE_ID, newColorPaletteId)
-);
-
-// Define the type for the colorPalette store's value
-type ColorPalette = readonly [string, string];
-
-// Type the colorPalette store
-export const colorPalette: Readable<ColorPalette> = derived(
-	[colorPaletteId],
-	([$colorPaletteId], set) => {
-		const palette = COLOR_PALETTES[$colorPaletteId] || COLOR_PALETTES['Black & White'];
-		set(palette);
 	}
-);
-
-interface RoomHistoryEntry {
-	name: string;
-	lastSeen: number;
 }
-type RoomHistoryT = Record<string, RoomHistoryEntry>;
 
-const storedRoomHistory = store.get(STORE_ROOM_HISTORY);
-const initialRoomHistory: RoomHistoryT =
-	storedRoomHistory && !Array.isArray(storedRoomHistory) ? storedRoomHistory : {};
-export const roomHistory: Writable<RoomHistoryT> = writable(initialRoomHistory);
-
-roomHistory.subscribe((updatedRoomHistory) => store.set(STORE_ROOM_HISTORY, updatedRoomHistory));
+export const webcam = new Webcam();

@@ -13,7 +13,7 @@
 	import Aperture from '#lib/icons/aperture.svelte';
 	import ArrowRight from '#lib/icons/arrow-right.svelte';
 
-	const hasRoomHistory: boolean = Object.entries($roomHistory).length > 0;
+	const hasRoomHistory: boolean = Object.keys(roomHistory.current).length > 0;
 	let isCreatingRoom: boolean = $state(false);
 
 	const roomsRef = collection(firestore, 'rooms');

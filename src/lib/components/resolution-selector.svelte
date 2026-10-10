@@ -25,7 +25,7 @@
 	});
 
 	function handleValueChange(value: string) {
-		$cameraResolutionId = value as CameraResolutionId;
+		cameraResolutionId.current = value as CameraResolutionId;
 	}
 </script>
 
@@ -33,7 +33,7 @@
 	name="resolution"
 	placeholder="Select a Resolution"
 	options={resolutionOptions}
-	value={$cameraResolutionId}
+	value={cameraResolutionId.current}
 	onValueChange={handleValueChange}
 	{...restProps}
 />

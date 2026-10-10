@@ -25,7 +25,7 @@
 		return timestamp + randomChars;
 	}
 
-	let selectedResolution = $derived(CAMERA_RESOLUTIONS[$cameraResolutionId]);
+	let selectedResolution = $derived(CAMERA_RESOLUTIONS[cameraResolutionId.current]);
 	let width = $derived(selectedResolution[0]);
 	let height = $derived(selectedResolution[1]);
 	let currentFrameNumber = $state(0);
@@ -49,7 +49,7 @@
 				height
 			});
 			hapticBuzz();
-			const gifBlob = await generateGIF(filmstripData, $colorPalette, width, height);
+			const gifBlob = await generateGIF(filmstripData, colorPalette.colors, width, height);
 
 			if (!gifBlob) {
 				console.error('Could not create GIF from webcam feed');

@@ -9,7 +9,7 @@
 	import uPNG from 'upng-js';
 	import { slide } from 'svelte/transition';
 
-	import { mediaStream, webcamEnabled } from '#lib/store.svelte.js';
+	import { webcam } from '#lib/store.svelte.js';
 	import { generateFilmstripWithCallback } from '#lib/utils/frames.js';
 	import { hapticBuzz } from '#lib/utils/vibration.js';
 	import { MESSAGE_TEXT_MAX_LENGTH } from '#lib/constants.js';
@@ -122,11 +122,11 @@
 				maxlength={MESSAGE_TEXT_MAX_LENGTH}
 				onkeydown={handleInputKeydown}
 				placeholder="Press enter to record a clip and send a message"
-				disabled={!$mediaStream || !$webcamEnabled}></textarea>
+				disabled={webcam.status !== 'active'}></textarea>
 			<span class="fakeInput__action">
 				<Button
 					type="submit"
-					disabled={!$mediaStream || isCapturing || isSending || !$webcamEnabled}
+					disabled={webcam.status !== 'active' || isCapturing || isSending}
 					loading={isSending}
 					tall={true}
 				>

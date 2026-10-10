@@ -1,24 +1,24 @@
-<script>
-	import { webcamEnabled, mediaStream } from '#lib/store.svelte.js';
+<script lang="ts">
+	import { webcam, webcamEnabled } from '#lib/store.svelte.js';
 	import { scale } from 'svelte/transition';
 
 	import Button from './button.svelte';
 
 	function handleEnableWebcamClick() {
-		$webcamEnabled = true;
+		webcamEnabled.current = true;
 	}
 </script>
 
-{#if $mediaStream.status !== 'active'}
+{#if webcam.status !== 'active'}
 	<div in:scale out:scale>
-		<Button onclick={handleEnableWebcamClick} disabled={$mediaStream.status === 'requesting'}>
-			{#if $mediaStream.status === 'initial'}
+		<Button onclick={handleEnableWebcamClick} disabled={webcam.status === 'requesting'}>
+			{#if webcam.status === 'initial'}
 				<em>Click</em> to enable your webcam and chat<em>!</em>
 			{/if}
-			{#if $mediaStream.status === 'requesting'}
+			{#if webcam.status === 'requesting'}
 				<em>Requesting webcam feed...</em>
 			{/if}
-			{#if $mediaStream.status === 'error'}
+			{#if webcam.status === 'error'}
 				Webcam error. <em>Try again?</em>
 			{/if}
 		</Button>

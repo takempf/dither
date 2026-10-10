@@ -10,7 +10,7 @@
 	type RoomHistoryEntriesT = [string, RoomHistoryEntryT];
 
 	const rooms = $derived.by(() =>
-		Object.entries($roomHistory).map(([id, entry]: RoomHistoryEntriesT) => {
+		Object.entries(roomHistory.current).map(([id, entry]: RoomHistoryEntriesT) => {
 			const { lastSeen, name } = entry;
 			return { id, lastSeen, name };
 		})

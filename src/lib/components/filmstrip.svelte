@@ -51,7 +51,7 @@
 		stripCanvas.width = image.naturalWidth;
 		stripCanvas.height = image.naturalHeight;
 		stripCanvas.getContext('2d')?.drawImage(image, 0, 0);
-		convertImageData(stripCanvas, $colorPalette);
+		convertImageData(stripCanvas, colorPalette.colors);
 		return stripCanvas;
 	});
 
@@ -62,7 +62,7 @@
 		}
 
 		const strip = recoloredStrip;
-		const palette = $colorPalette;
+		const palette = colorPalette.colors;
 
 		return frameTick.subscribe((tick) => {
 			startTick ??= tick;
@@ -97,7 +97,7 @@
 			return;
 		}
 
-		const gifBlob = await generateGIF(image, $colorPalette);
+		const gifBlob = await generateGIF(image, colorPalette.colors);
 
 		if (!gifBlob) {
 			console.error('Could not create GIF Blob object');

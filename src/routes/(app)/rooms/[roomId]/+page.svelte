@@ -15,7 +15,7 @@
 		updateDoc
 	} from 'firebase/firestore';
 
-	import { pageVisible, roomHistory } from '#lib/store.svelte.js';
+	import { pageVisibility, roomHistory } from '#lib/store.svelte.js';
 	import { firebaseStorage, firestore } from '#lib/firebase.js';
 	import { ROOM_NAME_MAX_LENGTH } from '#lib/constants.js';
 
@@ -41,14 +41,13 @@
 	let roomName: string = $derived(room?.name || data.roomId);
 
 	function updateRoomHistory() {
-		const updatedRoomHistory = {
-			...$roomHistory,
+		roomHistory.current = {
+			...roomHistory.current,
 			[data.roomId]: {
 				lastSeen: Date.now(),
 				name: roomName
 			}
 		};
-		$roomHistory = updatedRoomHistory;
 	}
 
 	let NewMessage = $state();
@@ -139,13 +138,11 @@
 		};
 	});
 
-	$effect(() =>
-		pageVisible.subscribe((visible) => {
-			if (visible) {
-				unreadCount = 0;
-			}
-		})
-	);
+	$effect(() => {
+		if (pageVisibility.visible) {
+			unreadCount = 0;
+		}
+	});
 
 	// errors propagate to NewMessage, which shows them
 	async function handleCreateMessage({ text, imageDataBlob }: NewMessageT) {

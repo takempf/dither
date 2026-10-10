@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { cameras, colorPalette, mediaDeviceId, mediaStream } from '#lib/store.svelte.js';
+	import { colorPalette, webcam } from '#lib/store.svelte.js';
 	import { getCrop } from '#lib/utils/webcam.js';
 	import type { WebcamDitherMessageT } from '#lib/workers/webcam-dither.js';
 
@@ -58,12 +58,12 @@
 
 	$effect(() => {
 		if (worker) {
-			postToWorker(worker, { type: 'palette', colorPalette: $colorPalette });
+			postToWorker(worker, { type: 'palette', colorPalette: colorPalette.colors });
 		}
 	});
 
 	$effect(() => {
-		const { stream } = $mediaStream;
+		const { stream } = webcam;
 
 		if (!stream) {
 			console.warn('No stream available to attach to video element');
@@ -143,16 +143,17 @@
 	}
 
 	function handleFeedClick() {
-		if ($cameras.length <= 1) {
+		if (webcam.cameras.length <= 1) {
 			return;
 		}
 
-		const activeCameraIndex = $mediaDeviceId
-			? $cameras.findIndex((camera) => camera.deviceId === $mediaDeviceId)
+		const activeCameraIndex = webcam.deviceId
+			? webcam.cameras.findIndex((camera) => camera.deviceId === webcam.deviceId)
 			: 0;
-		const nextCameraIndex = $cameras.length - 1 > activeCameraIndex ? activeCameraIndex + 1 : 0;
-		const nextCameraDeviceId = $cameras[nextCameraIndex].deviceId;
-		mediaDeviceId.set(nextCameraDeviceId);
+		const nextCameraIndex =
+			webcam.cameras.length - 1 > activeCameraIndex ? activeCameraIndex + 1 : 0;
+		const nextCameraDeviceId = webcam.cameras[nextCameraIndex].deviceId;
+		webcam.deviceId = nextCameraDeviceId;
 	}
 </script>
 
@@ -179,7 +180,7 @@
 		bind:this={displayCanvasElement}
 		style={`width: ${width}px; aspect-ratio: ${width} / ${height};`}
 	></canvas>
-	{#if $cameras.length > 1}<span class="switch-camera-icon">⟲</span>{/if}
+	{#if webcam.cameras.length > 1}<span class="switch-camera-icon">⟲</span>{/if}
 </button>
 
 <style>
