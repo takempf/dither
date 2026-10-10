@@ -1,4 +1,5 @@
 <svg
+	aria-hidden="true"
 	class="icon"
 	viewBox="0 0 64 64"
 	style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"

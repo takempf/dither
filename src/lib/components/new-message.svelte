@@ -120,6 +120,7 @@
 			<textarea
 				class="input"
 				bind:value={inputMessage}
+				aria-label="Message"
 				maxlength={MESSAGE_TEXT_MAX_LENGTH}
 				onkeydown={handleInputKeydown}
 				placeholder="Press enter to record a clip and send a message"
@@ -127,6 +128,7 @@
 			<span class="fakeInput__action">
 				<Button
 					type="submit"
+					aria-label="Record and send"
 					disabled={webcam.status !== 'active' || isCapturing || isSending}
 					loading={isSending}
 					tall={true}

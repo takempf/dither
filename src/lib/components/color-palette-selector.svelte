@@ -23,6 +23,7 @@
 <Select
 	{options}
 	name="color-palette-selector"
+	label="Theme"
 	prefix="Theme:"
 	placeholder="None"
 	value={colorPalette.id}

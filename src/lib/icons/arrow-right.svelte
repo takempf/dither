@@ -1,4 +1,5 @@
 <svg
+	aria-hidden="true"
 	class="icon"
 	fill="none"
 	height="24"

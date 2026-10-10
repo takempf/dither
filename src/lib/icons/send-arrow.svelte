@@ -1,4 +1,5 @@
 <svg
+	aria-hidden="true"
 	class="icon"
 	clip-rule="evenodd"
 	fill-rule="evenodd"

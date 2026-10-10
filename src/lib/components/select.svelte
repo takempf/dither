@@ -14,6 +14,8 @@
 
 	interface PropsT {
 		name: string;
+		// accessible name, e.g. "Theme"
+		label: string;
 		placeholder: string;
 		options: SelectOptionT[];
 		prefix?: string;
@@ -22,7 +24,10 @@
 		disabled?: boolean;
 	}
 
-	let { name, options, prefix, value, onValueChange, placeholder, disabled }: PropsT = $props();
+	let { name, label, options, prefix, value, onValueChange, placeholder, disabled }: PropsT =
+		$props();
+
+	const selectedLabel = $derived(options.find((option) => option.value === value)?.label);
 
 	let fontSize: string = $state('1em');
 	let selectArrowsElement: HTMLElement; // Reference to the element you want to check
@@ -33,7 +38,7 @@
 </script>
 
 <Select.Root type="single" items={options} {name} {value} {onValueChange} {disabled}>
-	<Select.Trigger aria-label={placeholder}>
+	<Select.Trigger aria-label={`${label}: ${selectedLabel ?? placeholder}`}>
 		{#snippet child({ props })}
 			<Button {...props}>
 				<span class="trigger">

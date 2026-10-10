@@ -1,4 +1,4 @@
-<svg viewBox="0 0 24 24" class="icon">
+<svg aria-hidden="true" viewBox="0 0 24 24" class="icon">
 	<path
 		fill-rule="evenodd"
 		clip-rule="evenodd"

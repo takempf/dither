@@ -27,7 +27,13 @@
 
 <div class="roomListItem">
 	<a href={resolve('/(app)/rooms/[roomId]', { roomId: id })}>{name || id}</a>
-	<div class="remove"><Button variant="inverted" onclick={handleRemoveClick}><X /></Button></div>
+	<div class="remove">
+		<Button
+			variant="inverted"
+			aria-label={`Remove ${name || id} from history`}
+			onclick={handleRemoveClick}><X /></Button
+		>
+	</div>
 </div>
 
 <style>

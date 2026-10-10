@@ -31,6 +31,7 @@
 
 <Select
 	name="resolution"
+	label="Camera resolution"
 	placeholder="Select a Resolution"
 	options={resolutionOptions}
 	value={cameraResolutionId.current}

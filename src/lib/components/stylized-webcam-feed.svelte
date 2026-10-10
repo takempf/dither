@@ -161,6 +161,8 @@
 	type="button"
 	class="stylized-webcam-feed"
 	class:playing={webcamVideoStatus === 'playing'}
+	aria-label="Switch camera"
+	aria-disabled={webcam.cameras.length <= 1}
 	onclick={handleFeedClick}
 >
 	<video

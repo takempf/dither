@@ -206,6 +206,7 @@
 			߷
 			<textarea
 				class="room-name"
+				aria-label="Room name"
 				rows="1"
 				maxlength={ROOM_NAME_MAX_LENGTH}
 				bind:this={textAreaElement}
