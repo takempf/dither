@@ -30,3 +30,7 @@ export const STORE_CAMERA_RESOLUTION_ID = 'dither:resolutionId';
 export const CURSOR_URL = '/arrow.png';
 export const CURSOR_POINTER_URL = '/pointer.png';
 export const CURSOR_TEXT_URL = '/text.png';
+
+// keep in sync with firestore.rules
+export const ROOM_NAME_MAX_LENGTH = 55;
+export const MESSAGE_TEXT_MAX_LENGTH = 280;

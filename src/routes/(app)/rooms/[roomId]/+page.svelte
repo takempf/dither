@@ -16,6 +16,7 @@
 
 	import { pageVisible, roomHistory } from '#lib/store.svelte.js';
 	import { firebaseStorage, firestore } from '#lib/firebase.js';
+	import { ROOM_NAME_MAX_LENGTH } from '#lib/constants.js';
 
 	import Message from '#lib/components/message.svelte';
 
@@ -188,7 +189,7 @@
 		<textarea
 			class="room-name"
 			rows="1"
-			maxlength="55"
+			maxlength={ROOM_NAME_MAX_LENGTH}
 			bind:this={textAreaElement}
 			bind:value={roomNameInputValue}
 			onblur={handleNameBlur}

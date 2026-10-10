@@ -2,17 +2,35 @@ rules_version = '2';
 service cloud.firestore {
 
   match /databases/{database}/documents {
+    function isRoomName(name) {
+      return name is string && name.size() > 0 && name.size() <= 55;
+    }
+
+    // download URL of this message's filmstrip, in prod or in the Storage emulator
+    function isFilmstripUrl(url, messageId) {
+      return url is string && url.matches(
+        '(https://firebasestorage[.]googleapis[.]com|http://127[.]0[.]0[.]1:9199)'
+          + '/v0/b/not-firebase-58b83[.]appspot[.]com/o/messages%2F' + messageId
+          + '%2Ffilmstrip[.]png[?].*'
+      );
+    }
+
     match /rooms/{roomId} {
-      allow create: if true; // Anyone can create rooms
-      allow read: if true; // Anyone can read rooms
-      allow update: if request.writeFields.size() == 1 && 'name' in request.writeFields;
+      // `get` only, so rooms can't be listed
+      allow get: if true;
+      allow create: if request.resource.data.keys().hasOnly(['name', 'createdAt'])
+        && isRoomName(request.resource.data.name)
+        && request.resource.data.createdAt == request.time;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+        && isRoomName(request.resource.data.name);
 
       match /messages/{messageId} {
-        allow read: if true; // Anyone can read messages
-      }
-      
-      match /messages/{document=**} {
-         allow create: if request.resource.data.text != null && request.resource.data.imageUrl != null;
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['text', 'imageUrl', 'createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() <= 280
+          && isFilmstripUrl(request.resource.data.imageUrl, messageId)
+          && request.resource.data.createdAt == request.time;
       }
     }
   }

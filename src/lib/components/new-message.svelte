@@ -5,6 +5,7 @@
 	import { mediaStream, webcamEnabled } from '#lib/store.svelte.js';
 	import { generateFilmstripWithCallback } from '#lib/utils/frames.js';
 	import { hapticBuzz } from '#lib/utils/vibration.js';
+	import { MESSAGE_TEXT_MAX_LENGTH } from '#lib/constants.js';
 
 	import StylizedWebcamFeed from '#lib/components/stylized-webcam-feed.svelte';
 	import Button from './button.svelte';
@@ -95,6 +96,7 @@
 			<textarea
 				class="input"
 				bind:value={inputMessage}
+				maxlength={MESSAGE_TEXT_MAX_LENGTH}
 				onkeydown={handleInputKeydown}
 				placeholder="Press enter to record a clip and send a message"
 				disabled={!$mediaStream || !$webcamEnabled}></textarea>
