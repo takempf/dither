@@ -36,6 +36,10 @@
 		"vite-plugin-wasm": "^3.3.0"
 	},
 	"type": "module",
+	"engines": {
+		"node": ">=22.17"
+	},
+	"packageManager": "npm@11.19.0",
 	"dependencies": {
 		"bits-ui": "^0.21.13",
 		"canvas-dither": "^1.0.1",
