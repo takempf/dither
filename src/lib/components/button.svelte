@@ -23,13 +23,13 @@
 </script>
 
 <button {...restProps} class:invert={variant === 'inverted'} class:tall>
-	<div class="inner">{@render children()}</div>
+	<span class="inner">{@render children()}</span>
 	{#if loading}
-		<div class="loading" in:scale={{ delay: 250 }} out:scale>
-			<div class="loadingRotation">
-				<div class="loadingIcon"><Loading /></div>
-			</div>
-		</div>
+		<span class="loading" in:scale={{ delay: 250 }} out:scale>
+			<span class="loadingRotation">
+				<span class="loadingIcon"><Loading /></span>
+			</span>
+		</span>
 	{/if}
 </button>
 
@@ -84,6 +84,11 @@
 		aspect-ratio: 1 / 1;
 		line-height: 1;
 		font-size: 1.5em;
+	}
+
+	.loadingRotation,
+	.loadingIcon {
+		display: block;
 	}
 
 	.loadingRotation {
