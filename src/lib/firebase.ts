@@ -6,7 +6,6 @@ import { PUBLIC_FIREBASE_API_KEY } from '$app/env/public';
 
 export const firebaseApp = initializeApp({
 	apiKey: PUBLIC_FIREBASE_API_KEY,
-	databaseURL: 'not-firebase-58b83.firebaseapp.com',
 	storageBucket: 'not-firebase-58b83.appspot.com',
 	projectId: 'not-firebase-58b83'
 });
