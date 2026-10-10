@@ -18,14 +18,18 @@ export default defineConfig(
 	svelte.configs.prettier,
 	{
 		languageOptions: {
-			globals: {
-				...globals.browser,
-				...globals.node
-			}
+			globals: globals.browser
 		},
 		rules: {
 			// TypeScript checks undefined names itself, including ambient ones like `App`
 			'no-undef': 'off'
+		}
+	},
+	{
+		// config files and tests run in Node
+		files: ['*.config.{js,ts}', 'tests/**'],
+		languageOptions: {
+			globals: globals.node
 		}
 	},
 	{
