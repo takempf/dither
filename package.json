@@ -43,7 +43,7 @@
 	},
 	"packageManager": "npm@11.19.0",
 	"dependencies": {
-		"bits-ui": "^0.21.13",
+		"bits-ui": "^2.19.5",
 		"canvas-dither": "^1.0.1",
 		"firebase": "^10.13.1",
 		"human-id": "^4.1.1",

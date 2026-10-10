@@ -3,7 +3,6 @@
 	import { type HTMLButtonAttributes } from 'svelte/elements';
 
 	import { scale } from 'svelte/transition';
-	import { builderActions, getAttrs, type Builder } from 'bits-ui';
 
 	import Loading from '$/icons/loading.svelte';
 
@@ -12,8 +11,6 @@
 		variant?: 'normal' | 'inverted';
 		tall?: boolean;
 		loading?: boolean;
-		// bits-ui
-		builders?: Builder[];
 	}
 
 	const {
@@ -21,18 +18,11 @@
 		variant = 'normal',
 		tall = false,
 		loading = false,
-		builders = [],
 		...restProps
 	}: Props = $props();
 </script>
 
-<button
-	{...restProps}
-	class:invert={variant === 'inverted'}
-	class:tall
-	use:builderActions={{ builders }}
-	{...getAttrs(builders)}
->
+<button {...restProps} class:invert={variant === 'inverted'} class:tall>
 	<div class="inner">{@render children()}</div>
 	{#if loading}
 		<div class="loading" in:scale={{ delay: 250 }} out:scale>

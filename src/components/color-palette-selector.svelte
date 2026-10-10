@@ -6,8 +6,8 @@
 
 	import Select from './select.svelte';
 
-	function handleColorPaletteChange(event: any) {
-		colorPaletteId.set(event.value as ColorPaletteId);
+	function handleColorPaletteChange(value: string) {
+		colorPaletteId.set(value as ColorPaletteId);
 	}
 
 	colorPalette.subscribe(([black, white]) => {
@@ -22,7 +22,6 @@
 		const [black, white] = COLOR_PALETTES[key];
 		return {
 			label: key,
-			children: key,
 			value: key,
 			style: `--black: ${black}; --white: ${white}`
 		};
@@ -34,8 +33,8 @@
 	name="color-palette-selector"
 	prefix="Theme:"
 	placeholder="None"
-	onSelectedChange={handleColorPaletteChange}
-	selected={{ value: $colorPaletteId, label: $colorPaletteId, children: $colorPaletteId }}
+	value={$colorPaletteId}
+	onValueChange={handleColorPaletteChange}
 />
 
 <style>

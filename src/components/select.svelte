@@ -7,9 +7,8 @@
 	import SelectArrowsIcon from '$/icons/select-arrows.svelte';
 
 	interface SelectOptionT {
-		value: any;
+		value: string;
 		label: string;
-		children?: any;
 		style?: string;
 	}
 
@@ -17,14 +16,13 @@
 		name: string;
 		placeholder: string;
 		options: SelectOptionT[];
-		prefix?: any;
-		onSelectedChange: (value: unknown | undefined) => void;
-		selected: any;
+		prefix?: string;
+		value: string;
+		onValueChange: (value: string) => void;
 		disabled?: boolean;
 	}
 
-	let { name, options, prefix, onSelectedChange, placeholder, selected, disabled }: PropsT =
-		$props();
+	let { name, options, prefix, value, onValueChange, placeholder, disabled }: PropsT = $props();
 
 	let fontSize: string = $state('1em');
 	let selectArrowsElement: HTMLElement; // Reference to the element you want to check
@@ -34,38 +32,48 @@
 	});
 </script>
 
-<Select.Root items={options} portal="#content" {onSelectedChange} {selected} {disabled}>
-	<Select.Trigger aria-label={placeholder} asChild let:builder>
-		<Button builders={[builder]}>
-			<div class="trigger">
-				{#if prefix}{prefix}{/if}
-				<strong><Select.Value class="text" {placeholder} /></strong>
-				<span class="select-arrows" bind:this={selectArrowsElement}><SelectArrowsIcon /></span>
-			</div>
-		</Button>
+<Select.Root type="single" items={options} {name} {value} {onValueChange} {disabled}>
+	<Select.Trigger aria-label={placeholder}>
+		{#snippet child({ props })}
+			<Button {...props}>
+				<span class="trigger">
+					{#if prefix}{prefix}{/if}
+					<strong><Select.Value {placeholder} /></strong>
+					<span class="select-arrows" bind:this={selectArrowsElement}><SelectArrowsIcon /></span>
+				</span>
+			</Button>
+		{/snippet}
 	</Select.Trigger>
-	<Select.Content strategy="fixed" sameWidth={false} asChild let:builder>
-		<div class="content" use:builder.action {...builder}>
-			{#each options as option}
-				<Select.Item value={option.value} label={option.label} asChild let:builder>
-					<div
-						class="item"
-						style={`font-size: ${fontSize}; ${option.style}`}
-						use:builder.action
-						{...builder}
-					>
-						{option.children || option.label}
-						<Select.ItemIndicator class="item-indicator" asChild>
-							<span class="item-indicator">
-								<CaretLeftIcon />
-							</span>
-						</Select.ItemIndicator>
+	<Select.Portal to="#content">
+		<Select.Content strategy="fixed">
+			{#snippet child({ wrapperProps, props, open })}
+				{#if open}
+					<div {...wrapperProps}>
+						<div class="content" {...props}>
+							{#each options as option (option.value)}
+								<Select.Item value={option.value} label={option.label}>
+									{#snippet child({ props, selected })}
+										<div
+											class="item"
+											style={`font-size: ${fontSize}; ${option.style ?? ''}`}
+											{...props}
+										>
+											{option.label}
+											{#if selected}
+												<span class="item-indicator">
+													<CaretLeftIcon />
+												</span>
+											{/if}
+										</div>
+									{/snippet}
+								</Select.Item>
+							{/each}
+						</div>
 					</div>
-				</Select.Item>
-			{/each}
-		</div>
-	</Select.Content>
-	<Select.Input {name} />
+				{/if}
+			{/snippet}
+		</Select.Content>
+	</Select.Portal>
 </Select.Root>
 
 <style>
@@ -104,20 +112,14 @@
 	.item-indicator {
 		width: 1em;
 		height: 1em;
-		display: none;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
-	:global([data-highlighted]) {
+	.item[data-highlighted] {
 		cursor: var(--cursor-pointer);
 		background: var(--black);
 		color: var(--white);
-	}
-
-	:global([data-selected]) {
-		.item-indicator {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-		}
 	}
 </style>

@@ -24,9 +24,8 @@
 		});
 	});
 
-	function handleSelectedChange(event: any) {
-		const newCameraResolutionId = event.value as CameraResolutionId;
-		$cameraResolutionId = newCameraResolutionId;
+	function handleValueChange(value: string) {
+		$cameraResolutionId = value as CameraResolutionId;
 	}
 </script>
 
@@ -34,7 +33,7 @@
 	name="resolution"
 	placeholder="Select a Resolution"
 	options={resolutionOptions}
-	onSelectedChange={handleSelectedChange}
-	selected={{ value: $cameraResolutionId, label: $cameraResolutionId }}
+	value={$cameraResolutionId}
+	onValueChange={handleValueChange}
 	{...restProps}
 />
