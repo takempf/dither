@@ -1,6 +1,4 @@
 <script lang="ts">
-	import throttle from 'just-throttle';
-
 	import { cameras, colorPalette, mediaDeviceId, mediaStream } from '#lib/store.svelte.js';
 	import { getCrop } from '#lib/utils/webcam.js';
 	import type { WebcamDitherMessageT } from '#lib/workers/webcam-dither.js';
@@ -131,10 +129,10 @@
 		};
 	});
 
-	const handleVideoPlaying = throttle(function () {
+	function handleVideoPlaying() {
 		// TODO see if this can be done without artificial delay
 		setTimeout(() => (webcamVideoStatus = 'playing'), 250);
-	}, 1000);
+	}
 
 	function handleVideoSuspend() {
 		webcamVideoStatus = 'suspended';

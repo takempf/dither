@@ -45,10 +45,8 @@
 		"@fontsource/noto-emoji": "^5.3.2",
 		"@internationalized/date": "^3.12.4",
 		"bits-ui": "^2.19.5",
-		"canvas-dither": "^1.0.1",
 		"firebase": "^13.0.0",
 		"human-id": "^4.1.1",
-		"just-throttle": "^4.2.0",
 		"modern-gif": "^2.0.3",
 		"store2": "^2.14.3",
 		"upng-js": "^2.1.0"

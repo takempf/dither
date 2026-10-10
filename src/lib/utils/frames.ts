@@ -1,5 +1,4 @@
-import Dither from 'canvas-dither';
-
+import { atkinsonDither } from './canvas.js';
 import { getCrop } from './webcam.js';
 
 interface FilmstripOptions {
@@ -68,7 +67,7 @@ export function generateFilmstripWithCallback(
 
 			// finish up
 			const canvasImageData = context.getImageData(0, 0, canvas.width, canvas.height);
-			const ditheredImageData = Dither.atkinson(canvasImageData);
+			const ditheredImageData = atkinsonDither(canvasImageData);
 			resolve(ditheredImageData);
 			cleanup();
 		}

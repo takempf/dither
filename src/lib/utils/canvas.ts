@@ -1,5 +1,3 @@
-import Dither from 'canvas-dither';
-
 export type ColorPaletteT = readonly [black: string, white: string];
 
 type RgbT = readonly [r: number, g: number, b: number];
@@ -17,6 +15,33 @@ function parseHexColor(hex: string): RgbT {
 		parsedColors.set(hex, rgb);
 	}
 	return rgb;
+}
+
+// 1-bit Atkinson dithering, in place. Ported from canvas-dither.
+export function atkinsonDither(imageData: ImageData): ImageData {
+	const { data, width } = imageData;
+	// clamped, so diffused error saturates at 0 and 255 like the original
+	const luminance = new Uint8ClampedArray(width * imageData.height);
+
+	for (let l = 0, i = 0; i < data.length; l++, i += 4) {
+		luminance[l] = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+	}
+
+	for (let l = 0, i = 0; i < data.length; l++, i += 4) {
+		const value = luminance[l] < 129 ? 0 : 255;
+		// Atkinson spreads 6/8 of the error, so 1/8 to each neighbor
+		const error = Math.floor((luminance[l] - value) / 8);
+		data.fill(value, i, i + 3);
+
+		luminance[l + 1] += error;
+		luminance[l + 2] += error;
+		luminance[l + width - 1] += error;
+		luminance[l + width] += error;
+		luminance[l + width + 1] += error;
+		luminance[l + 2 * width] += error;
+	}
+
+	return imageData;
 }
 
 // snap each pixel to the nearer palette color. No DOM, so it also runs in workers.
@@ -73,5 +98,5 @@ export function drawDitheredNoise(
 		data[i + 3] = 255; // Alpha (fully opaque)
 	}
 
-	canvasContext.putImageData(Dither.atkinson(imageData), 0, 0);
+	canvasContext.putImageData(atkinsonDither(imageData), 0, 0);
 }

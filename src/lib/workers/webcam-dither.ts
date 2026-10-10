@@ -1,7 +1,5 @@
 // Dithers webcam frames off the main thread and draws them to the transferred display canvas.
-import Dither from 'canvas-dither';
-
-import { recolorImageData, type ColorPaletteT } from '#lib/utils/canvas.js';
+import { atkinsonDither, recolorImageData, type ColorPaletteT } from '#lib/utils/canvas.js';
 
 export type WebcamDitherMessageT =
 	| { type: 'init'; canvas: OffscreenCanvas }
@@ -16,7 +14,7 @@ function drawFrame(bitmap: ImageBitmap) {
 	if (context && colorPalette) {
 		const { width, height } = context.canvas;
 		context.drawImage(bitmap, 0, 0, width, height);
-		const imageData = Dither.atkinson(context.getImageData(0, 0, width, height));
+		const imageData = atkinsonDither(context.getImageData(0, 0, width, height));
 		recolorImageData(imageData, colorPalette);
 		context.putImageData(imageData, 0, 0);
 	}
