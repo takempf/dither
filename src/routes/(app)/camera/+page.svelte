@@ -49,12 +49,7 @@
 				height
 			});
 			hapticBuzz();
-			const gifBlob = await generateGIF(
-				filmstripData,
-				$colorPalette as [string, string],
-				width,
-				height
-			);
+			const gifBlob = await generateGIF(filmstripData, $colorPalette, width, height);
 
 			if (!gifBlob) {
 				console.error('Could not create GIF from webcam feed');

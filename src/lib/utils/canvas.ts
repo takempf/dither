@@ -1,54 +1,59 @@
 import Dither from 'canvas-dither';
 
-export function convertImageData(
-	canvas: HTMLCanvasElement,
-	colorPalette: [black: string, white: string]
-): void {
-	const ctx = canvas.getContext('2d');
-	if (!ctx) {
-		throw new Error('Canvas context not available');
-	}
+export type ColorPaletteT = readonly [black: string, white: string];
 
-	const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+type RgbT = readonly [r: number, g: number, b: number];
+
+const parsedColors = new Map<string, RgbT>();
+
+function parseHexColor(hex: string): RgbT {
+	let rgb = parsedColors.get(hex);
+	if (!rgb) {
+		rgb = [
+			parseInt(hex.slice(1, 3), 16),
+			parseInt(hex.slice(3, 5), 16),
+			parseInt(hex.slice(5, 7), 16)
+		];
+		parsedColors.set(hex, rgb);
+	}
+	return rgb;
+}
+
+// snap each pixel to the nearer palette color. No DOM, so it also runs in workers.
+export function recolorImageData(imageData: ImageData, colorPalette: ColorPaletteT): void {
+	const [blackR, blackG, blackB] = parseHexColor(colorPalette[0]);
+	const [whiteR, whiteG, whiteB] = parseHexColor(colorPalette[1]);
 	const data = imageData.data;
-	const blackColor = {
-		r: parseInt(colorPalette[0].slice(1, 3), 16),
-		g: parseInt(colorPalette[0].slice(3, 5), 16),
-		b: parseInt(colorPalette[0].slice(5, 7), 16)
-	};
-	const whiteColor = {
-		r: parseInt(colorPalette[1].slice(1, 3), 16),
-		g: parseInt(colorPalette[1].slice(3, 5), 16),
-		b: parseInt(colorPalette[1].slice(5, 7), 16)
-	};
 
 	for (let i = 0; i < data.length; i += 4) {
 		const red = data[i];
 		const green = data[i + 1];
 		const blue = data[i + 2];
 
-		// Calculate distances to both colors in the palette
-		const distanceToBlack = Math.sqrt(
-			Math.pow(red - blackColor.r, 2) +
-				Math.pow(green - blackColor.g, 2) +
-				Math.pow(blue - blackColor.b, 2)
-		);
+		// squared distances compare the same as real ones
+		const distanceToBlack = (red - blackR) ** 2 + (green - blackG) ** 2 + (blue - blackB) ** 2;
+		const distanceToWhite = (red - whiteR) ** 2 + (green - whiteG) ** 2 + (blue - whiteB) ** 2;
 
-		const distanceToWhite = Math.sqrt(
-			Math.pow(red - whiteColor.r, 2) +
-				Math.pow(green - whiteColor.g, 2) +
-				Math.pow(blue - whiteColor.b, 2)
-		);
+		if (distanceToBlack < distanceToWhite) {
+			data[i] = blackR;
+			data[i + 1] = blackG;
+			data[i + 2] = blackB;
+		} else {
+			data[i] = whiteR;
+			data[i + 1] = whiteG;
+			data[i + 2] = whiteB;
+		}
+	}
+}
 
-		// Choose the closest color
-		const closestColor = distanceToBlack < distanceToWhite ? blackColor : whiteColor;
-
-		// Set the pixel to the closest color
-		data[i] = closestColor.r;
-		data[i + 1] = closestColor.g;
-		data[i + 2] = closestColor.b;
+export function convertImageData(canvas: HTMLCanvasElement, colorPalette: ColorPaletteT): void {
+	const ctx = canvas.getContext('2d');
+	if (!ctx) {
+		throw new Error('Canvas context not available');
 	}
 
+	const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+	recolorImageData(imageData, colorPalette);
 	ctx.putImageData(imageData, 0, 0);
 }
 
@@ -68,8 +73,5 @@ export function drawDitheredNoise(
 		data[i + 3] = 255; // Alpha (fully opaque)
 	}
 
-	canvasContext.putImageData(imageData, 0, 0);
-	const canvasImageData = canvasContext.getImageData(0, 0, width, height);
-	const filteredImageData = Dither.atkinson(canvasImageData);
-	canvasContext.putImageData(filteredImageData, 0, 0);
+	canvasContext.putImageData(Dither.atkinson(imageData), 0, 0);
 }

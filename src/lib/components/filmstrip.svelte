@@ -88,7 +88,7 @@
 			); // Draw the image onto the canvas
 		}
 
-		convertImageData(canvasElement, $colorPalette as unknown as [string, string]);
+		convertImageData(canvasElement, $colorPalette);
 	});
 
 	async function handleDownloadClick() {
@@ -96,7 +96,7 @@
 			return;
 		}
 
-		const gifBlob = await generateGIF(image, $colorPalette as unknown as [string, string]);
+		const gifBlob = await generateGIF(image, $colorPalette);
 
 		if (!gifBlob) {
 			console.error('Could not create GIF Blob object');

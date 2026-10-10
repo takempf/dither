@@ -1,6 +1,6 @@
 import workerUrl from 'modern-gif/worker?url';
 
-import { convertImageData } from './canvas.js';
+import { convertImageData, type ColorPaletteT } from './canvas.js';
 
 const FRAME_HEIGHT = 150;
 const FRAME_WIDTH = 200;
@@ -83,7 +83,7 @@ export function generateImage(targetCanvasElement: HTMLCanvasElement): Promise<B
 
 export async function generateGIF(
 	source: HTMLCanvasElement | HTMLImageElement | ImageData,
-	colorPalette: [string, string],
+	colorPalette: ColorPaletteT,
 	width: number = FRAME_WIDTH,
 	height: number = FRAME_HEIGHT
 ): Promise<Blob | undefined> {

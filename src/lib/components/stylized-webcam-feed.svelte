@@ -58,7 +58,7 @@
 		const canvasImageData = displayCanvas2dContext.getImageData(0, 0, width, height);
 		const filteredImageData = Dither.atkinson(canvasImageData);
 		displayCanvas2dContext.putImageData(filteredImageData, 0, 0);
-		convertImageData(displayCanvasElement, $colorPalette as unknown as [string, string]);
+		convertImageData(displayCanvasElement, $colorPalette);
 	}
 
 	const throttledDrawProcessedImage = throttle(drawProcessedImage, 100, { leading: true });
