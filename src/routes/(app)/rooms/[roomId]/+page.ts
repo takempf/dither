@@ -1,11 +1,4 @@
-import type { LoadEvent } from '@sveltejs/kit';
+import type { PageLoad } from './$types';
 
-import { error } from '@sveltejs/kit';
-
-export function load({ params }: LoadEvent) {
-	if (!params.roomId) {
-		throw error(404, 'Room not found');
-	}
-
-	return { roomId: params.roomId };
-}
+// the route only matches with a roomId, so no missing-param check is needed
+export const load: PageLoad = ({ params }) => ({ roomId: params.roomId });

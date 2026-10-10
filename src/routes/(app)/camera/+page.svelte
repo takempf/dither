@@ -1,18 +1,19 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
+	import { motion } from '#lib/utils/motion.js';
 
-	import StylizedWebcamFeed from '$/components/stylized-webcam-feed.svelte';
-	import Button from '$/components/button.svelte';
-	import WebcamPermissionButton from '$/components/webcam-permission-button.svelte';
-	import Progress from '$/components/progress.svelte';
+	import StylizedWebcamFeed from '#lib/components/stylized-webcam-feed.svelte';
+	import Button from '#lib/components/button.svelte';
+	import WebcamPermissionButton from '#lib/components/webcam-permission-button.svelte';
+	import Progress from '#lib/components/progress.svelte';
 
-	import { colorPalette, cameraResolutionId, webcamEnabled } from '$/store.svelte';
-	import { downloadFile, generateGIF } from '$/utils/filmstrip';
-	import { CAMERA_RESOLUTIONS, type CameraResolutionId } from '$/constants';
-	import { generateFilmstripWithCallback } from '$/utils/frames';
+	import { colorPalette, cameraResolutionId } from '#lib/store.svelte.js';
+	import { downloadFile, generateGIF } from '#lib/utils/filmstrip.js';
+	import { CAMERA_RESOLUTIONS } from '#lib/constants.js';
+	import { generateFilmstripWithCallback } from '#lib/utils/frames.js';
 	import { quartOut } from 'svelte/easing';
-	import { hapticBuzz } from '$/utils/vibration';
-	import ResolutionSelector from '$/components/resolution-selector.svelte';
+	import { hapticBuzz } from '#lib/utils/vibration.js';
+	import ResolutionSelector from '#lib/components/resolution-selector.svelte';
 
 	const TOTAL_FRAMES = 20;
 
@@ -25,7 +26,7 @@
 		return timestamp + randomChars;
 	}
 
-	let selectedResolution = $derived(CAMERA_RESOLUTIONS[$cameraResolutionId]);
+	let selectedResolution = $derived(CAMERA_RESOLUTIONS[cameraResolutionId.current]);
 	let width = $derived(selectedResolution[0]);
 	let height = $derived(selectedResolution[1]);
 	let currentFrameNumber = $state(0);
@@ -49,12 +50,7 @@
 				height
 			});
 			hapticBuzz();
-			const gifBlob = await generateGIF(
-				filmstripData,
-				$colorPalette as [string, string],
-				width,
-				height
-			);
+			const gifBlob = await generateGIF(filmstripData, colorPalette.colors, width, height);
 
 			if (!gifBlob) {
 				console.error('Could not create GIF from webcam feed');
@@ -96,9 +92,8 @@
 			/>
 		</svg>
 		<div class="sizes">
-			{#each Object.keys(CAMERA_RESOLUTIONS) as cameraResolutionId}
-				{@const cameraResolution = CAMERA_RESOLUTIONS[cameraResolutionId]}
-				<div class="size" style={`width: ${cameraResolution[0]}px;`}></div>
+			{#each Object.values(CAMERA_RESOLUTIONS) as [resolutionWidth] (resolutionWidth)}
+				<div class="size" style={`width: ${resolutionWidth}px;`}></div>
 			{/each}
 		</div>
 		<div class="cameraFeedActual">
@@ -107,8 +102,8 @@
 		{#if isCapturing}
 			<div
 				class="progress"
-				in:slide={{ duration: 250, easing: quartOut }}
-				out:slide={{ duration: 500, easing: quartOut, delay: 500 }}
+				in:slide={motion({ duration: 250, easing: quartOut })}
+				out:slide={motion({ duration: 500, easing: quartOut, delay: 500 })}
 			>
 				<Progress {progress} />
 			</div>

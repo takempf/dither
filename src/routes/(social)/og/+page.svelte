@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Message from '$/components/message.svelte';
+	import Message from '#lib/components/message.svelte';
 </script>
 
 <div class="og">
@@ -10,12 +10,7 @@
 	</div>
 	<div class="bottom">
 		<div class="demoMessage">
-			<Message
-				imageUrl="/home-promo-filmstrip.png"
-				text="Howdy!"
-				size="normal"
-				interactive={false}
-			/>
+			<Message imageUrl="/home-promo-filmstrip.png" text="Howdy!" interactive={false} />
 		</div>
 	</div>
 </div>

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { quintOut } from 'svelte/easing';
+	import { resolve } from '$app/paths';
 	import { flip } from 'svelte/animate';
+	import { motion } from '#lib/utils/motion.js';
 	import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 	import {
 		setDoc,
@@ -14,67 +16,65 @@
 		updateDoc
 	} from 'firebase/firestore';
 
-	import { pageVisible, roomHistory } from '$/store.svelte.js';
-	import { firebaseStorage, firestore } from '$/firebase.js';
+	import { pageVisibility, roomHistory } from '#lib/store.svelte.js';
+	import { firebaseStorage, firestore } from '#lib/firebase.js';
+	import { ROOM_NAME_MAX_LENGTH } from '#lib/constants.js';
 
-	import Message from '$/components/message.svelte';
+	import Message from '#lib/components/message.svelte';
+	import NewMessage, { type NewMessageT } from '#lib/components/new-message.svelte';
 
 	const MESSAGES_COUNT = 15;
 
 	const { data } = $props();
 
-	const roomMessagesRef = collection(firestore, `rooms/${data.roomId}/messages`);
+	const roomMessagesRef = $derived(collection(firestore, `rooms/${data.roomId}/messages`));
 
 	let unreadCount: number = $state(0);
-	let textAreaElement: HTMLTextAreaElement | null;
-	let roomNameInputValue: string = $state(data.roomId);
+	let textAreaElement: HTMLTextAreaElement | undefined = $state();
 
 	// firestore data
 	let room: App.RoomT | undefined = $state();
+	let roomStatus: 'loading' | 'ready' | 'missing' | 'error' = $state('loading');
 	let messages: App.ChatMessageT[] = $state([]);
+	let messagesError: boolean = $state(false);
 
 	let roomName: string = $derived(room?.name || data.roomId);
+	// follows roomName until edited
+	let roomNameInputValue: string = $derived(roomName);
 
 	function updateRoomHistory() {
-		const updatedRoomHistory = {
-			...$roomHistory,
+		roomHistory.current = {
+			...roomHistory.current,
 			[data.roomId]: {
 				lastSeen: Date.now(),
 				name: roomName
 			}
 		};
-		$roomHistory = updatedRoomHistory;
 	}
 
-	let NewMessage = $state();
-
 	$effect(() => {
-		(async function () {
-			try {
-				// import the NewMessage component
-				const module = await import('$/components/new-message.svelte');
-				NewMessage = module.default as any as typeof NewMessage;
-			} catch (importError) {
-				console.error('Error importing NewMessage component', importError);
-			}
-		})();
-	});
-
-	$effect(() => {
-		if (!data.roomId) {
-			return;
-		}
+		room = undefined;
+		roomStatus = 'loading';
 
 		// get room data
 		const currentRoomRef = doc(firestore, 'rooms', data.roomId);
-		const roomUnsubscribe = onSnapshot(currentRoomRef, (roomSnapshot) => {
-			// TODO // some kind of 404 if there's no room at all
-			if (roomSnapshot.exists()) {
-				room = roomSnapshot.data() as App.RoomT;
-				roomNameInputValue = room.name;
-				updateRoomHistory();
+		const roomUnsubscribe = onSnapshot(
+			currentRoomRef,
+			(roomSnapshot) => {
+				if (roomSnapshot.exists()) {
+					room = roomSnapshot.data() as App.RoomT;
+					roomStatus = 'ready';
+					updateRoomHistory();
+				} else if (!roomSnapshot.metadata.fromCache) {
+					// a cache miss isn't proof the room is gone, so wait for the server
+					roomStatus = 'missing';
+				}
+			},
+			(error) => {
+				console.error('Error loading room', error);
+				roomStatus = 'error';
 			}
-		});
+		);
 
 		return () => {
 			roomUnsubscribe();
@@ -82,123 +82,158 @@
 	});
 
 	$effect(() => {
+		messages = [];
+		messagesError = false;
+
 		// get room messages
 		const roomMessagesQuery = query(
 			roomMessagesRef,
 			limit(MESSAGES_COUNT),
 			orderBy('createdAt', 'desc')
 		);
-		const roomMessagesUnsubscribe = onSnapshot(roomMessagesQuery, (roomMessagesSnapshot) => {
-			messages = roomMessagesSnapshot.docs.map((doc) => {
-				const { createdAt, imageUrl, text } = doc.data();
+		let isInitialSnapshot = true;
+		const roomMessagesUnsubscribe = onSnapshot(
+			roomMessagesQuery,
+			(roomMessagesSnapshot) => {
+				messagesError = false;
 
-				return {
-					id: doc.id,
-					createdAt,
-					imageUrl,
-					text
-				};
-			});
-		});
+				// count messages that arrive while the tab is in the background
+				if (!isInitialSnapshot && document.hidden) {
+					unreadCount += roomMessagesSnapshot
+						.docChanges()
+						.filter((change) => change.type === 'added').length;
+				}
+				isInitialSnapshot = false;
+
+				messages = roomMessagesSnapshot.docs.map((doc) => {
+					const { createdAt, imageUrl, text } = doc.data();
+
+					return {
+						id: doc.id,
+						createdAt,
+						imageUrl,
+						text
+					};
+				});
+			},
+			(error) => {
+				console.error('Error loading messages', error);
+				messagesError = true;
+			}
+		);
 
 		return () => {
 			roomMessagesUnsubscribe();
 		};
 	});
 
-	pageVisible.subscribe(() => {
-		unreadCount = 0;
+	$effect(() => {
+		if (pageVisibility.visible) {
+			unreadCount = 0;
+		}
 	});
 
-	interface HandleCreateMessageArgs {
-		text: string;
-		imageDataBlob: Blob;
-	}
+	// errors propagate to NewMessage, which shows them
+	async function handleCreateMessage({ text, imageDataBlob }: NewMessageT) {
+		const newMessageRef = doc(roomMessagesRef);
 
-	async function handleCreateMessage({ text, imageDataBlob }: HandleCreateMessageArgs) {
-		try {
-			// Generate a new document ID for the message
-			const newMessageRef = doc(roomMessagesRef);
-			const messageId = newMessageRef.id;
+		const storageRef = ref(firebaseStorage, `messages/${newMessageRef.id}/filmstrip.png`);
+		await uploadBytes(storageRef, imageDataBlob);
+		const imageUrl = await getDownloadURL(storageRef);
 
-			// Upload the image to Firebase Storage
-			const storageRef = ref(firebaseStorage, `messages/${messageId}/filmstrip.png`);
-			await uploadBytes(storageRef, imageDataBlob); // Assuming imageDataURL is a data URL
-
-			// Get the download URL of the uploaded image
-			const imageUrl = await getDownloadURL(storageRef);
-
-			await setDoc(newMessageRef, {
-				createdAt: serverTimestamp(),
-				imageUrl: imageUrl,
-				text
-			});
-		} catch (addMessageError) {
-			console.error('Error adding message to room', addMessageError);
-		}
+		await setDoc(newMessageRef, {
+			createdAt: serverTimestamp(),
+			imageUrl,
+			text
+		});
 	}
 
 	async function handleNameBlur() {
-		const roomRef = doc(firestore, 'rooms', data.roomId);
-		await updateDoc(roomRef, { name: roomNameInputValue });
+		const name = roomNameInputValue.trim();
+
+		if (!name || name === room?.name) {
+			roomNameInputValue = roomName;
+			return;
+		}
+
+		try {
+			await updateDoc(doc(firestore, 'rooms', data.roomId), { name });
+		} catch (error) {
+			console.error('Error renaming room', error);
+			roomNameInputValue = roomName;
+		}
 	}
 
-	function handleNameKeypress(event: KeyboardEvent) {
+	function handleNameKeydown(event: KeyboardEvent & { currentTarget: HTMLTextAreaElement }) {
 		if (event.key === 'Enter') {
-			textAreaElement?.blur();
+			event.preventDefault();
+			event.currentTarget.blur();
 		}
 	}
 
-	function useResize(element: HTMLElement) {
-		let resizeRAFId: number;
-
-		function resize() {
-			element.style.width = '1px';
-			element.style.width = +element.scrollWidth + 'px';
-			resizeRAFId = window.requestAnimationFrame(resize);
+	// grow the name field to fit its text
+	function fitNameWidth() {
+		if (!textAreaElement) {
+			return;
 		}
-		resizeRAFId = window.requestAnimationFrame(resize);
 
-		return {
-			destroy: () => window.cancelAnimationFrame(resizeRAFId)
-		};
+		textAreaElement.style.width = '1px';
+		textAreaElement.style.width = `${textAreaElement.scrollWidth}px`;
 	}
+
+	$effect(() => {
+		void roomNameInputValue;
+		fitNameWidth();
+	});
+
+	// refit once web fonts change the text width
+	$effect(() => {
+		document.fonts.ready.then(fitNameWidth);
+	});
 </script>
 
 <svelte:head>
 	<title>{unreadCount ? `[${unreadCount}] ${roomName} - Dither` : `${roomName} - Dither`}</title>
 </svelte:head>
 
-<div class="content">
-	<div class="room-name-container">
-		߷
-		<textarea
-			class="room-name"
-			rows="1"
-			maxlength="55"
-			bind:this={textAreaElement}
-			bind:value={roomNameInputValue}
-			onblur={handleNameBlur}
-			onkeypress={handleNameKeypress}
-			use:useResize
-		></textarea>
-		߷
+{#if roomStatus === 'missing' || roomStatus === 'error'}
+	<div class="content notice">
+		<p>{roomStatus === 'missing' ? "This room doesn't exist." : "Couldn't load this room."}</p>
+		<a href={resolve('/(app)')}>Back home</a>
 	</div>
-	<div class="new-message">
-		{#if NewMessage}<NewMessage onCreateMessage={handleCreateMessage} />{/if}
-	</div>
+{:else}
+	<div class="content">
+		<div class="room-name-container">
+			߷
+			<textarea
+				class="room-name"
+				aria-label="Room name"
+				rows="1"
+				maxlength={ROOM_NAME_MAX_LENGTH}
+				bind:this={textAreaElement}
+				bind:value={roomNameInputValue}
+				onblur={handleNameBlur}
+				onkeydown={handleNameKeydown}></textarea>
+			߷
+		</div>
+		<div class="new-message">
+			<NewMessage onCreateMessage={handleCreateMessage} />
+		</div>
 
-	<ul class="messages">
-		{#if messages.length === 0}
-			<p>Nothing has been said, <em>yet!</em></p>
+		{#if messagesError}
+			<p class="messages-status">Couldn't load messages.</p>
+		{:else if messages.length === 0}
+			<p class="messages-status">Nothing has been said, <em>yet!</em></p>
 		{/if}
-		{#each messages as { id, text, imageUrl }, i (id)}
-			<li class="message-container" animate:flip={{ duration: 500, easing: quintOut }}>
-				<Message {text} {imageUrl} index={i} />
-			</li>
-		{/each}
-	</ul>
-</div>
+		<ul class="messages">
+			{#each messages as { id, text, imageUrl }, i (id)}
+				<li class="message-container" animate:flip={motion({ duration: 500, easing: quintOut })}>
+					<Message {text} {imageUrl} index={i} />
+				</li>
+			{/each}
+		</ul>
+	</div>
+{/if}
 
 <style>
 	.content {
@@ -207,6 +242,16 @@
 		flex-direction: column;
 		gap: 1em;
 		padding: 1em;
+	}
+
+	.notice {
+		align-items: center;
+		text-align: center;
+	}
+
+	.messages-status {
+		margin: 0;
+		text-align: center;
 	}
 
 	.room-name-container {

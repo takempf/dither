@@ -2,13 +2,11 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
     match /messages/{messageId}/filmstrip.png {
-      allow write: if request.resource.contentType == 'image/png' 
+      // new files only, so existing filmstrips can't be overwritten
+      allow write: if resource == null
+                   && request.resource.contentType == 'image/png'
                    && request.resource.size < 1 * 1024 * 1024; // 1MB limit
-    }
-
-    // New rule to allow reading any image within /messages/{messageId}
-    match /messages/{messageId}/{imageName} {
-      allow read: if true && resource.contentType.matches('image/png');
+      allow read: if resource.contentType == 'image/png';
     }
   }
 }

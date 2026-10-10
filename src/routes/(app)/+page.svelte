@@ -2,17 +2,18 @@
 	import humanId from 'human-id';
 	import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
-	import { firestore } from '$/firebase';
-	import { roomHistory } from '$/store.svelte';
+	import { firestore } from '#lib/firebase.js';
+	import { roomHistory } from '#lib/store.svelte.js';
 
-	import Button from '$/components/button.svelte';
-	import Message from '$/components/message.svelte';
-	import RoomList from '$/components/room-list/room-list.svelte';
-	import Aperture from '$/icons/aperture.svelte';
-	import ArrowRight from '$/icons/arrow-right.svelte';
+	import Button from '#lib/components/button.svelte';
+	import Message from '#lib/components/message.svelte';
+	import RoomList from '#lib/components/room-list/room-list.svelte';
+	import Aperture from '#lib/icons/aperture.svelte';
+	import ArrowRight from '#lib/icons/arrow-right.svelte';
 
-	const hasRoomHistory: boolean = Object.entries($roomHistory).length > 0;
+	const hasRoomHistory: boolean = Object.keys(roomHistory.current).length > 0;
 	let isCreatingRoom: boolean = $state(false);
 
 	const roomsRef = collection(firestore, 'rooms');
@@ -25,7 +26,7 @@
 				createdAt: serverTimestamp()
 			});
 
-			await goto(`/rooms/${newRoomDoc.id}`);
+			await goto(resolve('/(app)/rooms/[roomId]', { roomId: newRoomDoc.id }));
 		} catch (error) {
 			console.error('Error creating room', error);
 		} finally {
@@ -34,7 +35,7 @@
 	}
 
 	function handleCameraClick() {
-		goto(`/camera`);
+		goto(resolve('/(app)/camera'));
 	}
 </script>
 

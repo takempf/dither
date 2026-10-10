@@ -2,7 +2,7 @@
 	{
 		"origin": ["https://dither.kempf.dev"],
 		"method": ["GET"],
-		"responseHeader": ["image/png"],
+		"responseHeader": ["Content-Type"],
 		"maxAgeSeconds": 3600
 	}
 ]

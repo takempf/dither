@@ -26,3 +26,6 @@ vite.config.ts.timestamp-*
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+# Playwright
+/test-results/
+/playwright-report/
