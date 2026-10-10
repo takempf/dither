@@ -69,7 +69,7 @@ export function drawDitheredNoise(
 	}
 
 	canvasContext.putImageData(imageData, 0, 0);
-	const canvasImageData = canvasContext.getImageData(0, 0, 200, 150);
+	const canvasImageData = canvasContext.getImageData(0, 0, width, height);
 	const filteredImageData = Dither.atkinson(canvasImageData);
 	canvasContext.putImageData(filteredImageData, 0, 0);
 }
