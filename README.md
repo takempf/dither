@@ -30,6 +30,8 @@ npm run dev         # in another terminal; dev always talks to the emulators
 | `npm run build`    | Static build into `public/`                                  |
 | `npm run deploy`   | Build and `firebase deploy`                                  |
 
+CI deploys to Firebase automatically on every push to `master` that passes.
+
 ## Configuration
 
 Copy `.env.example` to `.env` for production builds:
