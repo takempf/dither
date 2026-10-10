@@ -37,14 +37,11 @@ webcamEnabled.subscribe((value) => store.set(STORE_WEBCAM_ENABLED, value));
 // Type the mediaDeviceId store, allowing for null initially
 export const mediaDeviceId: Writable<string | undefined> = writable(undefined);
 
-// Correctly type previousMediaStream
-let previousMediaStream: MediaStream | null = null;
+function stopMediaStream(stream: MediaStream | null) {
+	stream?.getTracks().forEach((track) => track.stop());
+}
 
 async function getMediaStream(deviceId: string | undefined): Promise<MediaStream | null> {
-	if (previousMediaStream) {
-		previousMediaStream.getVideoTracks().forEach((track) => track.stop());
-	}
-
 	try {
 		const userMediaStream = await navigator.mediaDevices.getUserMedia({
 			audio: false,
@@ -56,8 +53,6 @@ async function getMediaStream(deviceId: string | undefined): Promise<MediaStream
 				height: { ideal: 480 }
 			}
 		});
-		previousMediaStream = userMediaStream;
-
 		return userMediaStream;
 	} catch (error) {
 		console.error('Unable to activate webcam:', error);
@@ -77,39 +72,49 @@ export const mediaStream: Readable<DerivedMediaStream> = derived<
 >(
 	[mediaDeviceId, webcamEnabled],
 	([$mediaDeviceId, $webcamEnabled], set) => {
-		(async () => {
-			if (!$webcamEnabled) {
+		if (!$webcamEnabled) {
+			set({
+				status: 'initial',
+				stream: null
+			});
+			return;
+		}
+
+		let cancelled = false;
+		let activeStream: MediaStream | null = null;
+
+		set({
+			status: 'requesting',
+			stream: null
+		});
+
+		getMediaStream($mediaDeviceId).then((userMediaStream) => {
+			// stream arrived after the last subscriber left or inputs changed
+			if (cancelled) {
+				stopMediaStream(userMediaStream);
+				return;
+			}
+
+			if (!userMediaStream) {
 				set({
-					status: 'initial',
+					status: 'error',
 					stream: null
 				});
 				return;
 			}
 
-			try {
-				set({
-					status: 'requesting',
-					stream: null
-				});
+			activeStream = userMediaStream;
+			set({
+				status: 'active',
+				stream: userMediaStream
+			});
+		});
 
-				const userMediaStream = await getMediaStream($mediaDeviceId);
-
-				if (!userMediaStream) {
-					throw new Error('No media stream returned from getMediaStream');
-				}
-
-				set({
-					status: 'active',
-					stream: userMediaStream
-				});
-			} catch (error) {
-				console.error('Unable to activate webcam:', error);
-				set({
-					status: 'error',
-					stream: null
-				});
-			}
-		})();
+		// runs when inputs change and when the last subscriber leaves, so the camera turns off
+		return () => {
+			cancelled = true;
+			stopMediaStream(activeStream);
+		};
 	},
 	{
 		status: 'initial',
