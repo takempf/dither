@@ -54,7 +54,6 @@
 		"upng-js": "^2.1.0"
 	},
 	"imports": {
-		"#lib": "./src/lib/index.js",
 		"#lib/*": "./src/lib/*"
 	}
 }

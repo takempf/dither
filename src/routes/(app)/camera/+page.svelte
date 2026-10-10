@@ -6,7 +6,7 @@
 	import WebcamPermissionButton from '#lib/components/webcam-permission-button.svelte';
 	import Progress from '#lib/components/progress.svelte';
 
-	import { colorPalette, cameraResolutionId, webcamEnabled } from '#lib/store.svelte.js';
+	import { colorPalette, cameraResolutionId } from '#lib/store.svelte.js';
 	import { downloadFile, generateGIF } from '#lib/utils/filmstrip.js';
 	import { CAMERA_RESOLUTIONS, type CameraResolutionId } from '#lib/constants.js';
 	import { generateFilmstripWithCallback } from '#lib/utils/frames.js';

@@ -20,7 +20,7 @@
 <div class="roomList">
 	<h2 class="heading">Rooms You've Visited</h2>
 	<ul class="list-items">
-		{#each rooms as { id, name }, i (id)}
+		{#each rooms as { id, name } (id)}
 			<li>
 				<RoomListItem {id} {name} />
 			</li>
