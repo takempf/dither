@@ -3,6 +3,7 @@
 	import { type HTMLButtonAttributes } from 'svelte/elements';
 
 	import { scale } from 'svelte/transition';
+	import { motion } from '#lib/utils/motion.js';
 
 	import Loading from '#lib/icons/loading.svelte';
 
@@ -25,7 +26,7 @@
 <button {...restProps} class:invert={variant === 'inverted'} class:tall>
 	<span class="inner">{@render children()}</span>
 	{#if loading}
-		<span class="loading" in:scale={{ delay: 250 }} out:scale>
+		<span class="loading" in:scale={motion({ delay: 250 })} out:scale={motion()}>
 			<span class="loadingRotation">
 				<span class="loadingIcon"><Loading /></span>
 			</span>

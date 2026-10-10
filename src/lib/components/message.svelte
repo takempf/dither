@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { expoOut } from 'svelte/easing';
 	import { scale } from 'svelte/transition';
+	import { motion } from '#lib/utils/motion.js';
 
 	import Filmstrip from './filmstrip.svelte';
 	import RenderIfVisible from './render-if-visible.svelte';
@@ -18,14 +19,23 @@
 </script>
 
 <div class="message">
-	<div class="image" in:scale={{ duration: 1000, easing: expoOut, opacity: 0, delay: index * 50 }}>
+	<div
+		class="image"
+		in:scale={motion({ duration: 1000, easing: expoOut, opacity: 0, delay: index * 50 })}
+	>
 		<RenderIfVisible>
 			<Filmstrip src={imageUrl} fileName={displayText} saveable={interactive} />
 		</RenderIfVisible>
 	</div>
 	<div
 		class="text"
-		in:scale={{ delay: index * 50 + 500, duration: 500, easing: expoOut, opacity: 0, start: 0.25 }}
+		in:scale={motion({
+			delay: index * 50 + 500,
+			duration: 500,
+			easing: expoOut,
+			opacity: 0,
+			start: 0.25
+		})}
 	>
 		{displayText}
 	</div>

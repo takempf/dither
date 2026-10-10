@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { webcam, webcamEnabled } from '#lib/store.svelte.js';
 	import { scale } from 'svelte/transition';
+	import { motion } from '#lib/utils/motion.js';
 
 	import Button from './button.svelte';
 
@@ -10,7 +11,7 @@
 </script>
 
 {#if webcam.status !== 'active'}
-	<div in:scale out:scale>
+	<div in:scale={motion()} out:scale={motion()}>
 		<Button onclick={handleEnableWebcamClick} disabled={webcam.status === 'requesting'}>
 			{#if webcam.status === 'initial'}
 				<em>Click</em> to enable your webcam and chat<em>!</em>

@@ -7,6 +7,7 @@
 
 <script lang="ts">
 	import { slide } from 'svelte/transition';
+	import { motion } from '#lib/utils/motion.js';
 
 	import { webcam } from '#lib/store.svelte.js';
 	import { generateFilmstripWithCallback } from '#lib/utils/frames.js';
@@ -109,8 +110,8 @@
 			{#if isCapturing}
 				<div
 					class="progress"
-					in:slide={{ duration: 250 }}
-					out:slide={{ duration: 500, delay: 500 }}
+					in:slide={motion({ duration: 250 })}
+					out:slide={motion({ duration: 500, delay: 500 })}
 				>
 					<Progress {progress} />
 				</div>

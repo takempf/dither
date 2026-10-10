@@ -2,6 +2,7 @@
 	import { quintOut } from 'svelte/easing';
 	import { resolve } from '$app/paths';
 	import { flip } from 'svelte/animate';
+	import { motion } from '#lib/utils/motion.js';
 	import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 	import {
 		setDoc,
@@ -226,7 +227,7 @@
 		{/if}
 		<ul class="messages">
 			{#each messages as { id, text, imageUrl }, i (id)}
-				<li class="message-container" animate:flip={{ duration: 500, easing: quintOut }}>
+				<li class="message-container" animate:flip={motion({ duration: 500, easing: quintOut })}>
 					<Message {text} {imageUrl} index={i} />
 				</li>
 			{/each}

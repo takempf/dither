@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
+	import { motion } from '#lib/utils/motion.js';
 
 	import StylizedWebcamFeed from '#lib/components/stylized-webcam-feed.svelte';
 	import Button from '#lib/components/button.svelte';
@@ -101,8 +102,8 @@
 		{#if isCapturing}
 			<div
 				class="progress"
-				in:slide={{ duration: 250, easing: quartOut }}
-				out:slide={{ duration: 500, easing: quartOut, delay: 500 }}
+				in:slide={motion({ duration: 250, easing: quartOut })}
+				out:slide={motion({ duration: 500, easing: quartOut, delay: 500 })}
 			>
 				<Progress {progress} />
 			</div>

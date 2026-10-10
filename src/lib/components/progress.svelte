@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { scale } from 'svelte/transition';
+	import { motion } from '#lib/utils/motion.js';
 
 	import { clamp } from '#lib/utils/number.js';
 
@@ -22,8 +23,8 @@
 	{#each items as item (item)}
 		<li
 			class="progressPip"
-			in:scale={{ duration: 100 }}
-			out:scale={{ duration: 500, delay: 500 }}
+			in:scale={motion({ duration: 100 })}
+			out:scale={motion({ duration: 500, delay: 500 })}
 		></li>
 	{/each}
 </ul>
