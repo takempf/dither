@@ -135,7 +135,6 @@
 
 	.canvas {
 		width: 100%;
-		image-rendering: optimizequality;
 		border-radius: var(--border-radius);
 	}
 
