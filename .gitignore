@@ -29,3 +29,6 @@ ui-debug.log
 # Playwright
 /test-results/
 /playwright-report/
+
+# Secret
+/secret/
