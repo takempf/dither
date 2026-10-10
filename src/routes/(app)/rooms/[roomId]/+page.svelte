@@ -88,7 +88,16 @@
 			limit(MESSAGES_COUNT),
 			orderBy('createdAt', 'desc')
 		);
+		let isInitialSnapshot = true;
 		const roomMessagesUnsubscribe = onSnapshot(roomMessagesQuery, (roomMessagesSnapshot) => {
+			// count messages that arrive while the tab is in the background
+			if (!isInitialSnapshot && document.hidden) {
+				unreadCount += roomMessagesSnapshot
+					.docChanges()
+					.filter((change) => change.type === 'added').length;
+			}
+			isInitialSnapshot = false;
+
 			messages = roomMessagesSnapshot.docs.map((doc) => {
 				const { createdAt, imageUrl, text } = doc.data();
 
@@ -106,9 +115,13 @@
 		};
 	});
 
-	pageVisible.subscribe(() => {
-		unreadCount = 0;
-	});
+	$effect(() =>
+		pageVisible.subscribe((visible) => {
+			if (visible) {
+				unreadCount = 0;
+			}
+		})
+	);
 
 	interface HandleCreateMessageArgs {
 		text: string;
