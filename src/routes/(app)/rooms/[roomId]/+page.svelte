@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { quintOut } from 'svelte/easing';
+	import { resolve } from '$app/paths';
 	import { flip } from 'svelte/animate';
 	import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 	import {
@@ -33,7 +34,9 @@
 
 	// firestore data
 	let room: App.RoomT | undefined = $state();
+	let roomStatus: 'loading' | 'ready' | 'missing' | 'error' = $state('loading');
 	let messages: App.ChatMessageT[] = $state([]);
+	let messagesError: boolean = $state(false);
 
 	let roomName: string = $derived(room?.name || data.roomId);
 
@@ -69,14 +72,24 @@
 
 		// get room data
 		const currentRoomRef = doc(firestore, 'rooms', data.roomId);
-		const roomUnsubscribe = onSnapshot(currentRoomRef, (roomSnapshot) => {
-			// TODO // some kind of 404 if there's no room at all
-			if (roomSnapshot.exists()) {
-				room = roomSnapshot.data() as App.RoomT;
-				roomNameInputValue = room.name;
-				updateRoomHistory();
+		const roomUnsubscribe = onSnapshot(
+			currentRoomRef,
+			(roomSnapshot) => {
+				if (roomSnapshot.exists()) {
+					room = roomSnapshot.data() as App.RoomT;
+					roomNameInputValue = room.name;
+					roomStatus = 'ready';
+					updateRoomHistory();
+				} else if (!roomSnapshot.metadata.fromCache) {
+					// a cache miss isn't proof the room is gone, so wait for the server
+					roomStatus = 'missing';
+				}
+			},
+			(error) => {
+				console.error('Error loading room', error);
+				roomStatus = 'error';
 			}
-		});
+		);
 
 		return () => {
 			roomUnsubscribe();
@@ -91,26 +104,35 @@
 			orderBy('createdAt', 'desc')
 		);
 		let isInitialSnapshot = true;
-		const roomMessagesUnsubscribe = onSnapshot(roomMessagesQuery, (roomMessagesSnapshot) => {
-			// count messages that arrive while the tab is in the background
-			if (!isInitialSnapshot && document.hidden) {
-				unreadCount += roomMessagesSnapshot
-					.docChanges()
-					.filter((change) => change.type === 'added').length;
+		const roomMessagesUnsubscribe = onSnapshot(
+			roomMessagesQuery,
+			(roomMessagesSnapshot) => {
+				messagesError = false;
+
+				// count messages that arrive while the tab is in the background
+				if (!isInitialSnapshot && document.hidden) {
+					unreadCount += roomMessagesSnapshot
+						.docChanges()
+						.filter((change) => change.type === 'added').length;
+				}
+				isInitialSnapshot = false;
+
+				messages = roomMessagesSnapshot.docs.map((doc) => {
+					const { createdAt, imageUrl, text } = doc.data();
+
+					return {
+						id: doc.id,
+						createdAt,
+						imageUrl,
+						text
+					};
+				});
+			},
+			(error) => {
+				console.error('Error loading messages', error);
+				messagesError = true;
 			}
-			isInitialSnapshot = false;
-
-			messages = roomMessagesSnapshot.docs.map((doc) => {
-				const { createdAt, imageUrl, text } = doc.data();
-
-				return {
-					id: doc.id,
-					createdAt,
-					imageUrl,
-					text
-				};
-			});
-		});
+		);
 
 		return () => {
 			roomMessagesUnsubscribe();
@@ -188,34 +210,43 @@
 	<title>{unreadCount ? `[${unreadCount}] ${roomName} - Dither` : `${roomName} - Dither`}</title>
 </svelte:head>
 
-<div class="content">
-	<div class="room-name-container">
-		߷
-		<textarea
-			class="room-name"
-			rows="1"
-			maxlength={ROOM_NAME_MAX_LENGTH}
-			bind:this={textAreaElement}
-			bind:value={roomNameInputValue}
-			onblur={handleNameBlur}
-			onkeydown={handleNameKeydown}></textarea>
-		߷
+{#if roomStatus === 'missing' || roomStatus === 'error'}
+	<div class="content notice">
+		<p>{roomStatus === 'missing' ? "This room doesn't exist." : "Couldn't load this room."}</p>
+		<a href={resolve('/(app)')}>Back home</a>
 	</div>
-	<div class="new-message">
-		{#if NewMessage}<NewMessage onCreateMessage={handleCreateMessage} />{/if}
-	</div>
+{:else}
+	<div class="content">
+		<div class="room-name-container">
+			߷
+			<textarea
+				class="room-name"
+				rows="1"
+				maxlength={ROOM_NAME_MAX_LENGTH}
+				bind:this={textAreaElement}
+				bind:value={roomNameInputValue}
+				onblur={handleNameBlur}
+				onkeydown={handleNameKeydown}></textarea>
+			߷
+		</div>
+		<div class="new-message">
+			{#if NewMessage}<NewMessage onCreateMessage={handleCreateMessage} />{/if}
+		</div>
 
-	<ul class="messages">
-		{#if messages.length === 0}
-			<p>Nothing has been said, <em>yet!</em></p>
+		{#if messagesError}
+			<p class="messages-status">Couldn't load messages.</p>
+		{:else if messages.length === 0}
+			<p class="messages-status">Nothing has been said, <em>yet!</em></p>
 		{/if}
-		{#each messages as { id, text, imageUrl }, i (id)}
-			<li class="message-container" animate:flip={{ duration: 500, easing: quintOut }}>
-				<Message {text} {imageUrl} index={i} />
-			</li>
-		{/each}
-	</ul>
-</div>
+		<ul class="messages">
+			{#each messages as { id, text, imageUrl }, i (id)}
+				<li class="message-container" animate:flip={{ duration: 500, easing: quintOut }}>
+					<Message {text} {imageUrl} index={i} />
+				</li>
+			{/each}
+		</ul>
+	</div>
+{/if}
 
 <style>
 	.content {
@@ -224,6 +255,16 @@
 		flex-direction: column;
 		gap: 1em;
 		padding: 1em;
+	}
+
+	.notice {
+		align-items: center;
+		text-align: center;
+	}
+
+	.messages-status {
+		margin: 0;
+		text-align: center;
 	}
 
 	.room-name-container {
