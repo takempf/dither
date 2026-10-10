@@ -15,8 +15,6 @@
 		});
 	});
 
-	type MessageSizeT = 'normal' | 'large';
-
 	interface MessagePropsT {
 		imageUrl: string;
 		text?: string;

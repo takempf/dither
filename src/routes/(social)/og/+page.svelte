@@ -10,12 +10,7 @@
 	</div>
 	<div class="bottom">
 		<div class="demoMessage">
-			<Message
-				imageUrl="/home-promo-filmstrip.png"
-				text="Howdy!"
-				size="normal"
-				interactive={false}
-			/>
+			<Message imageUrl="/home-promo-filmstrip.png" text="Howdy!" interactive={false} />
 		</div>
 	</div>
 </div>
