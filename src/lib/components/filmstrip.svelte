@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-
 	import { generateGIF, downloadFile } from '#lib/utils/filmstrip.js';
 	import { convertImageData, drawDitheredNoise } from '#lib/utils/canvas.js';
+	import { frameTick } from '#lib/utils/ticker.js';
 	import { colorPalette } from '#lib/store.svelte.js';
 
 	import Button from './button.svelte';
@@ -17,67 +16,71 @@
 	const FRAME_HEIGHT = 150;
 
 	let { fileName, src, saveable = true }: Props = $props();
-	let mounted: boolean = $state(false);
+	let canvasElement: HTMLCanvasElement | undefined = $state();
 	let image: HTMLImageElement | undefined = $state();
-	let startTime: number = $state(0);
-	let currentTime: number = $state(0);
-	let canvasElement: HTMLCanvasElement;
-	let canvasContext: CanvasRenderingContext2D | null;
-	let frame = $derived(Math.floor((currentTime - startTime) / 100));
+	// first tick seen, so playback starts at frame 0
+	let startTick: number | undefined;
 
-	async function loadImage(imageUrl: string) {
-		try {
-			const response = await fetch(imageUrl);
-			const blob = await response.blob();
-			const img = new Image();
-			img.src = URL.createObjectURL(blob);
-
-			img.onload = () => {
-				image = img;
-			};
-		} catch (error) {
-			console.error('Error loading or drawing image:', error);
-		}
-	}
-
-	function updateTime() {
-		currentTime = performance.now();
-
-		if (mounted) {
-			window.requestAnimationFrame(updateTime);
-		}
-	}
-
-	onMount(() => {
-		mounted = true;
-		canvasContext = canvasElement.getContext('2d');
-
-		loadImage(src);
-		startTime = performance.now();
-		updateTime();
+	$effect(() => {
+		let cancelled = false;
+		const img = new Image();
+		// CORS keeps the canvas readable for recoloring
+		img.crossOrigin = 'anonymous';
+		img.src = src;
+		img.decode().then(
+			() => {
+				if (!cancelled) {
+					image = img;
+				}
+			},
+			(error) => console.error('Error loading filmstrip image', error)
+		);
 
 		return () => {
-			mounted = false;
+			cancelled = true;
 		};
 	});
 
+	// the whole strip, recolored once per image or palette change
+	const recoloredStrip = $derived.by(() => {
+		if (!image) {
+			return undefined;
+		}
+
+		const stripCanvas = document.createElement('canvas');
+		stripCanvas.width = image.naturalWidth;
+		stripCanvas.height = image.naturalHeight;
+		stripCanvas.getContext('2d')?.drawImage(image, 0, 0);
+		convertImageData(stripCanvas, $colorPalette);
+		return stripCanvas;
+	});
+
 	$effect(() => {
-		if (!canvasContext) {
-			console.error('Could not create 2d canvas context while loading image.');
+		const context = canvasElement?.getContext('2d');
+		if (!context) {
 			return;
 		}
 
-		const frameNumber = frame % 20;
+		const strip = recoloredStrip;
+		const palette = $colorPalette;
 
-		// if image hasn't loaded, show empty noise
-		if (!(image instanceof Image)) {
-			drawDitheredNoise(canvasContext, FRAME_WIDTH, FRAME_HEIGHT);
-		} else {
-			canvasContext.drawImage(
-				image,
+		return frameTick.subscribe((tick) => {
+			startTick ??= tick;
+
+			// still loading, so show animated noise
+			if (!strip) {
+				drawDitheredNoise(context, FRAME_WIDTH, FRAME_HEIGHT);
+				convertImageData(context.canvas, palette);
+				return;
+			}
+
+			const frameCount = Math.max(1, Math.floor(strip.height / FRAME_HEIGHT));
+			const frame = (tick - startTick) % frameCount;
+			context.drawImage(
+				strip,
 				// source
 				0,
-				frameNumber * FRAME_HEIGHT,
+				frame * FRAME_HEIGHT,
 				FRAME_WIDTH,
 				FRAME_HEIGHT,
 				// destination
@@ -85,10 +88,8 @@
 				0,
 				FRAME_WIDTH,
 				FRAME_HEIGHT
-			); // Draw the image onto the canvas
-		}
-
-		convertImageData(canvasElement, $colorPalette);
+			);
+		});
 	});
 
 	async function handleDownloadClick() {
