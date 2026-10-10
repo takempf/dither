@@ -8,7 +8,7 @@
 
 	import { colorPalette, cameraResolutionId } from '#lib/store.svelte.js';
 	import { downloadFile, generateGIF } from '#lib/utils/filmstrip.js';
-	import { CAMERA_RESOLUTIONS, type CameraResolutionId } from '#lib/constants.js';
+	import { CAMERA_RESOLUTIONS } from '#lib/constants.js';
 	import { generateFilmstripWithCallback } from '#lib/utils/frames.js';
 	import { quartOut } from 'svelte/easing';
 	import { hapticBuzz } from '#lib/utils/vibration.js';
@@ -91,9 +91,8 @@
 			/>
 		</svg>
 		<div class="sizes">
-			{#each Object.keys(CAMERA_RESOLUTIONS) as cameraResolutionId}
-				{@const cameraResolution = CAMERA_RESOLUTIONS[cameraResolutionId]}
-				<div class="size" style={`width: ${cameraResolution[0]}px;`}></div>
+			{#each Object.values(CAMERA_RESOLUTIONS) as [resolutionWidth] (resolutionWidth)}
+				<div class="size" style={`width: ${resolutionWidth}px;`}></div>
 			{/each}
 		</div>
 		<div class="cameraFeedActual">

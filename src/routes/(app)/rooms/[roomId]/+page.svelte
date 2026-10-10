@@ -20,17 +20,16 @@
 	import { ROOM_NAME_MAX_LENGTH } from '#lib/constants.js';
 
 	import Message from '#lib/components/message.svelte';
-	import type { NewMessageT } from '#lib/components/new-message.svelte';
+	import NewMessage, { type NewMessageT } from '#lib/components/new-message.svelte';
 
 	const MESSAGES_COUNT = 15;
 
 	const { data } = $props();
 
-	const roomMessagesRef = collection(firestore, `rooms/${data.roomId}/messages`);
+	const roomMessagesRef = $derived(collection(firestore, `rooms/${data.roomId}/messages`));
 
 	let unreadCount: number = $state(0);
 	let textAreaElement: HTMLTextAreaElement | undefined = $state();
-	let roomNameInputValue: string = $state(data.roomId);
 
 	// firestore data
 	let room: App.RoomT | undefined = $state();
@@ -39,6 +38,8 @@
 	let messagesError: boolean = $state(false);
 
 	let roomName: string = $derived(room?.name || data.roomId);
+	// follows roomName until edited
+	let roomNameInputValue: string = $derived(roomName);
 
 	function updateRoomHistory() {
 		roomHistory.current = {
@@ -50,24 +51,9 @@
 		};
 	}
 
-	let NewMessage = $state();
-
 	$effect(() => {
-		(async function () {
-			try {
-				// import the NewMessage component
-				const module = await import('#lib/components/new-message.svelte');
-				NewMessage = module.default as any as typeof NewMessage;
-			} catch (importError) {
-				console.error('Error importing NewMessage component', importError);
-			}
-		})();
-	});
-
-	$effect(() => {
-		if (!data.roomId) {
-			return;
-		}
+		room = undefined;
+		roomStatus = 'loading';
 
 		// get room data
 		const currentRoomRef = doc(firestore, 'rooms', data.roomId);
@@ -76,7 +62,6 @@
 			(roomSnapshot) => {
 				if (roomSnapshot.exists()) {
 					room = roomSnapshot.data() as App.RoomT;
-					roomNameInputValue = room.name;
 					roomStatus = 'ready';
 					updateRoomHistory();
 				} else if (!roomSnapshot.metadata.fromCache) {
@@ -96,6 +81,9 @@
 	});
 
 	$effect(() => {
+		messages = [];
+		messagesError = false;
+
 		// get room messages
 		const roomMessagesQuery = query(
 			roomMessagesRef,
@@ -227,7 +215,7 @@
 			߷
 		</div>
 		<div class="new-message">
-			{#if NewMessage}<NewMessage onCreateMessage={handleCreateMessage} />{/if}
+			<NewMessage onCreateMessage={handleCreateMessage} />
 		</div>
 
 		{#if messagesError}

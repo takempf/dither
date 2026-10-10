@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { roomHistory } from '#lib/store.svelte.js';
 	import X from '#lib/icons/x.svelte';
 
@@ -25,7 +26,7 @@
 </script>
 
 <div class="roomListItem">
-	<a href="/rooms/{id}">{name || id}</a>
+	<a href={resolve('/(app)/rooms/[roomId]', { roomId: id })}>{name || id}</a>
 	<div class="remove"><Button variant="inverted" onclick={handleRemoveClick}><X /></Button></div>
 </div>
 

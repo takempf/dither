@@ -6,7 +6,6 @@
 </script>
 
 <script lang="ts">
-	import uPNG from 'upng-js';
 	import { slide } from 'svelte/transition';
 
 	import { webcam } from '#lib/store.svelte.js';
@@ -63,6 +62,8 @@
 				height: 150
 			});
 			hapticBuzz();
+			// loaded on first send, to keep the encoder out of the room page bundle
+			const { default: uPNG } = await import('upng-js');
 			const optimizedImageArrayBuffer = uPNG.encode(
 				[filmstripData.data.buffer],
 				filmstripData.width,

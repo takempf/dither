@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { colorPalette } from '#lib/store.svelte.js';
-	import { updateCursorColors } from '#lib/utils/cursor.js';
 
 	import { COLOR_PALETTES, type ColorPaletteId } from '#lib/constants.js';
 
@@ -9,14 +8,6 @@
 	function handleColorPaletteChange(value: string) {
 		colorPalette.id = value as ColorPaletteId;
 	}
-
-	$effect(() => {
-		const [black, white] = colorPalette.colors;
-		document.documentElement.style.setProperty('--black', black);
-		document.documentElement.style.setProperty('--white', white);
-
-		updateCursorColors(black, white);
-	});
 
 	const colorPalettesKeys = Object.keys(COLOR_PALETTES) as (keyof typeof COLOR_PALETTES)[];
 	const options = colorPalettesKeys.map((key) => {

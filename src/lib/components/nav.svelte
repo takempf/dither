@@ -1,17 +1,13 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-
-	let ColorPaletteSelector: any = $state(null); // Initially 'any', will be asserted later
-
-	onMount(async () => {
-		const module = await import('./color-palette-selector.svelte');
-		ColorPaletteSelector = module.default as typeof module.default; // Type assertion
-	});
+	import { resolve } from '$app/paths';
 </script>
 
 <nav class="nav">
-	<a href="/" class="app-name">Dither <span class="alpha-tag">alpha</span></a>
-	{#if ColorPaletteSelector}<ColorPaletteSelector />{/if}
+	<a href={resolve('/(app)')} class="app-name">Dither <span class="alpha-tag">alpha</span></a>
+	<!-- lazy, so the select library stays out of the first load -->
+	{#await import('./color-palette-selector.svelte') then { default: ColorPaletteSelector }}
+		<ColorPaletteSelector />
+	{/await}
 </nav>
 
 <style>

@@ -1,19 +1,9 @@
 <script lang="ts">
-	import type { default as FilmstripT } from '#lib/components/filmstrip.svelte';
-
 	import { expoOut } from 'svelte/easing';
 	import { scale } from 'svelte/transition';
 
+	import Filmstrip from './filmstrip.svelte';
 	import RenderIfVisible from './render-if-visible.svelte';
-
-	let Filmstrip: any = $state(null);
-
-	$effect(() => {
-		import('#lib/components/filmstrip.svelte').then((module) => {
-			// TODO // look into this typing again after svelte 5 releases for real
-			Filmstrip = module.default as any as FilmstripT;
-		});
-	});
 
 	interface MessagePropsT {
 		imageUrl: string;
@@ -24,15 +14,13 @@
 
 	let { imageUrl, text, index = 0, interactive = true }: MessagePropsT = $props();
 
-	const displayText = text || '…';
+	const displayText = $derived(text || '…');
 </script>
 
 <div class="message">
 	<div class="image" in:scale={{ duration: 1000, easing: expoOut, opacity: 0, delay: index * 50 }}>
 		<RenderIfVisible>
-			{#if Filmstrip}
-				<Filmstrip src={imageUrl} fileName={displayText} saveable={interactive} />
-			{/if}
+			<Filmstrip src={imageUrl} fileName={displayText} saveable={interactive} />
 		</RenderIfVisible>
 	</div>
 	<div
