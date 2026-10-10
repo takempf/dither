@@ -109,6 +109,43 @@ class PageVisibility {
 
 export const pageVisibility = new PageVisibility();
 
+// 'unknown' until the query resolves, or forever where browsers can't query the camera
+type CameraPermissionT = PermissionState | 'unknown';
+
+class CameraPermission {
+	#state: CameraPermissionT = $state('unknown');
+
+	#subscribe = createSubscriber(() => {
+		let stopped = false;
+		let removeChangeListener: (() => void) | undefined;
+
+		navigator.permissions?.query({ name: 'camera' as PermissionName }).then(
+			(status) => {
+				if (stopped) {
+					return;
+				}
+
+				const update = () => (this.#state = status.state);
+				update();
+				removeChangeListener = on(status, 'change', update);
+			},
+			() => {}
+		);
+
+		return () => {
+			stopped = true;
+			removeChangeListener?.();
+		};
+	});
+
+	get state(): CameraPermissionT {
+		this.#subscribe();
+		return this.#state;
+	}
+}
+
+export const cameraPermission = new CameraPermission();
+
 type WebcamStatusT = 'initial' | 'requesting' | 'active' | 'error';
 
 function stopMediaStream(stream: MediaStream | null) {
