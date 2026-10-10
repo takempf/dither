@@ -1,13 +1,13 @@
 <script lang="ts">
-	import Dither from 'canvas-dither';
 	import throttle from 'just-throttle';
 
 	import { cameras, colorPalette, mediaDeviceId, mediaStream } from '#lib/store.svelte.js';
-	import { convertImageData } from '#lib/utils/canvas.js';
 	import { getCrop } from '#lib/utils/webcam.js';
+	import type { WebcamDitherMessageT } from '#lib/workers/webcam-dither.js';
 
 	const TARGET_WIDTH = 200;
 	const TARGET_HEIGHT = 150;
+	const FRAME_INTERVAL = 100; // ms, so ~10 fps
 
 	interface Props {
 		width: number;
@@ -20,54 +20,49 @@
 		height = TARGET_HEIGHT,
 		videoElement = $bindable()
 	}: Props = $props();
-	let displayCanvasElement: HTMLCanvasElement | undefined;
-	let processedImageDrawRequestId: number;
+	let displayCanvasElement: HTMLCanvasElement | undefined = $state();
+	let worker: Worker | undefined = $state();
 
 	let webcamVideoStatus = $state('initial');
 
-	function drawProcessedImage() {
+	function postToWorker(
+		targetWorker: Worker,
+		message: WebcamDitherMessageT,
+		transfer: Transferable[] = []
+	) {
+		targetWorker.postMessage(message, transfer);
+	}
+
+	// the worker draws to the display canvas, so dithering stays off the main thread
+	$effect(() => {
 		if (!displayCanvasElement) {
-			console.error('No canvas element to draw to');
 			return;
 		}
 
-		const displayCanvas2dContext = displayCanvasElement.getContext('2d');
+		const ditherWorker = new Worker(new URL('../workers/webcam-dither.ts', import.meta.url), {
+			type: 'module'
+		});
+		const offscreenCanvas = displayCanvasElement.transferControlToOffscreen();
+		postToWorker(ditherWorker, { type: 'init', canvas: offscreenCanvas }, [offscreenCanvas]);
+		worker = ditherWorker;
 
-		if (!displayCanvas2dContext) {
-			console.error('Canvas context could not be initialized');
-			return;
+		return () => {
+			ditherWorker.terminate();
+			worker = undefined;
+		};
+	});
+
+	$effect(() => {
+		if (worker) {
+			postToWorker(worker, { type: 'resize', width, height });
 		}
+	});
 
-		if (!videoElement) {
-			console.error('No video element to draw from');
-			return;
+	$effect(() => {
+		if (worker) {
+			postToWorker(worker, { type: 'palette', colorPalette: $colorPalette });
 		}
-
-		const { x, y, width: cropWidth, height: cropHeight } = getCrop(videoElement, width / height);
-		displayCanvas2dContext.drawImage(
-			videoElement,
-			x,
-			y,
-			cropWidth,
-			cropHeight, // source (webcam)
-			0,
-			0,
-			width,
-			height // destination (canvas)
-		);
-		const canvasImageData = displayCanvas2dContext.getImageData(0, 0, width, height);
-		const filteredImageData = Dither.atkinson(canvasImageData);
-		displayCanvas2dContext.putImageData(filteredImageData, 0, 0);
-		convertImageData(displayCanvasElement, $colorPalette);
-	}
-
-	const throttledDrawProcessedImage = throttle(drawProcessedImage, 100, { leading: true });
-
-	function tryToDraw() {
-		throttledDrawProcessedImage();
-
-		processedImageDrawRequestId = requestAnimationFrame(tryToDraw);
-	}
+	});
 
 	$effect(() => {
 		const { stream } = $mediaStream;
@@ -77,20 +72,62 @@
 			return;
 		}
 
-		if (!videoElement) {
-			console.warn('No video element available to attach stream to');
+		if (!videoElement || !worker) {
 			return;
 		}
 
-		videoElement.srcObject = null;
-		videoElement.srcObject = stream;
-		videoElement.play();
+		const video = videoElement;
+		const ditherWorker = worker;
+		video.srcObject = null;
+		video.srcObject = stream;
+		video.play();
 
-		cancelAnimationFrame(processedImageDrawRequestId);
-		processedImageDrawRequestId = requestAnimationFrame(tryToDraw);
+		let videoFrameCallbackId = 0;
+		let lastFrameTime = -Infinity;
+		let isWorkerBusy = false;
+		let stopped = false;
 
-		return function onUnMount() {
-			cancelAnimationFrame(processedImageDrawRequestId);
+		function handleWorkerMessage() {
+			isWorkerBusy = false;
+		}
+
+		async function sendFrame(now: DOMHighResTimeStamp) {
+			videoFrameCallbackId = video.requestVideoFrameCallback(sendFrame);
+
+			// skip frames while the worker is busy or the interval hasn't passed
+			if (isWorkerBusy || now - lastFrameTime < FRAME_INTERVAL || !video.videoWidth) {
+				return;
+			}
+
+			isWorkerBusy = true;
+			lastFrameTime = now;
+
+			try {
+				const crop = getCrop(video, width / height);
+				const bitmap = await createImageBitmap(video, crop.x, crop.y, crop.width, crop.height, {
+					resizeWidth: width,
+					resizeHeight: height
+				});
+
+				if (stopped) {
+					bitmap.close();
+					return;
+				}
+
+				postToWorker(ditherWorker, { type: 'frame', bitmap }, [bitmap]);
+			} catch (error) {
+				console.error('Could not capture webcam frame', error);
+				isWorkerBusy = false;
+			}
+		}
+
+		ditherWorker.addEventListener('message', handleWorkerMessage);
+		videoFrameCallbackId = video.requestVideoFrameCallback(sendFrame);
+
+		return () => {
+			stopped = true;
+			video.cancelVideoFrameCallback(videoFrameCallbackId);
+			ditherWorker.removeEventListener('message', handleWorkerMessage);
 		};
 	});
 
@@ -138,12 +175,11 @@
 		onwaiting={handleVideoWaiting}
 		playsinline={true}
 	></video>
+	<!-- size is set in the worker, since the canvas is transferred -->
 	<canvas
 		class="display-webcam"
-		{width}
-		{height}
 		bind:this={displayCanvasElement}
-		style={`width: ${width}px;`}
+		style={`width: ${width}px; aspect-ratio: ${width} / ${height};`}
 	></canvas>
 	{#if $cameras.length > 1}<span class="switch-camera-icon">⟲</span>{/if}
 </button>
