@@ -1,7 +1,7 @@
 <script lang="ts">
 	import RoomListItem from './room-list-item.svelte';
 
-	import { roomHistory } from '$/store.svelte';
+	import { roomHistory } from '#lib/store.svelte.js';
 
 	interface RoomHistoryEntryT {
 		lastSeen: number;

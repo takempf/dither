@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { colorPaletteId, colorPalette } from '$/store.svelte.js';
-	import { updateCursorColors } from '$/utils/cursor';
+	import { colorPaletteId, colorPalette } from '#lib/store.svelte.js';
+	import { updateCursorColors } from '#lib/utils/cursor.js';
 
-	import { COLOR_PALETTES, type ColorPaletteId } from '$/constants.js';
+	import { COLOR_PALETTES, type ColorPaletteId } from '#lib/constants.js';
 
 	import Select from './select.svelte';
 

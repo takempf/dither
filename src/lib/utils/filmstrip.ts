@@ -1,6 +1,6 @@
 import workerUrl from 'modern-gif/worker?url';
 
-import { convertImageData } from './canvas';
+import { convertImageData } from './canvas.js';
 
 const FRAME_HEIGHT = 150;
 const FRAME_WIDTH = 200;

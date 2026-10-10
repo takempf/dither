@@ -1,6 +1,6 @@
 import Dither from 'canvas-dither';
 
-import { getCrop } from './webcam';
+import { getCrop } from './webcam.js';
 
 interface FilmstripOptions {
 	frameCount: number;

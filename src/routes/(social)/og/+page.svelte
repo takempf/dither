@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Message from '$/components/message.svelte';
+	import Message from '#lib/components/message.svelte';
 </script>
 
 <div class="og">

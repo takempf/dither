@@ -3,8 +3,8 @@
 	import { onMount } from 'svelte';
 
 	import Button from './button.svelte';
-	import CaretLeftIcon from '$/icons/caret-left.svelte';
-	import SelectArrowsIcon from '$/icons/select-arrows.svelte';
+	import CaretLeftIcon from '#lib/icons/caret-left.svelte';
+	import SelectArrowsIcon from '#lib/icons/select-arrows.svelte';
 
 	interface SelectOptionT {
 		value: string;

@@ -2,14 +2,14 @@
 	import uPNG from 'upng-js';
 	import { slide } from 'svelte/transition';
 
-	import { mediaStream, webcamEnabled } from '$/store.svelte.js';
-	import { generateFilmstripWithCallback } from '$/utils/frames';
-	import { hapticBuzz } from '$/utils/vibration';
+	import { mediaStream, webcamEnabled } from '#lib/store.svelte.js';
+	import { generateFilmstripWithCallback } from '#lib/utils/frames.js';
+	import { hapticBuzz } from '#lib/utils/vibration.js';
 
-	import StylizedWebcamFeed from '$/components/stylized-webcam-feed.svelte';
+	import StylizedWebcamFeed from '#lib/components/stylized-webcam-feed.svelte';
 	import Button from './button.svelte';
 	import WebcamPermissionButton from './webcam-permission-button.svelte';
-	import SendArrowIcon from '$/icons/send-arrow.svelte';
+	import SendArrowIcon from '#lib/icons/send-arrow.svelte';
 	import Progress from './progress.svelte';
 
 	const TOTAL_FRAMES = 20;

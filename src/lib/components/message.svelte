@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { default as FilmstripT } from '$/components/filmstrip.svelte';
+	import type { default as FilmstripT } from '#lib/components/filmstrip.svelte';
 
 	import { expoOut } from 'svelte/easing';
 	import { scale } from 'svelte/transition';
@@ -9,7 +9,7 @@
 	let Filmstrip: any = $state(null);
 
 	$effect(() => {
-		import('$/components/filmstrip.svelte').then((module) => {
+		import('#lib/components/filmstrip.svelte').then((module) => {
 			// TODO // look into this typing again after svelte 5 releases for real
 			Filmstrip = module.default as any as FilmstripT;
 		});

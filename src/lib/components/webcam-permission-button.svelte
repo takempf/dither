@@ -1,5 +1,5 @@
 <script>
-	import { webcamEnabled, mediaStream } from '$/store.svelte';
+	import { webcamEnabled, mediaStream } from '#lib/store.svelte.js';
 	import { scale } from 'svelte/transition';
 
 	import Button from './button.svelte';

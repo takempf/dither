@@ -14,10 +14,10 @@
 		updateDoc
 	} from 'firebase/firestore';
 
-	import { pageVisible, roomHistory } from '$/store.svelte.js';
-	import { firebaseStorage, firestore } from '$/firebase.js';
+	import { pageVisible, roomHistory } from '#lib/store.svelte.js';
+	import { firebaseStorage, firestore } from '#lib/firebase.js';
 
-	import Message from '$/components/message.svelte';
+	import Message from '#lib/components/message.svelte';
 
 	const MESSAGES_COUNT = 15;
 
@@ -52,7 +52,7 @@
 		(async function () {
 			try {
 				// import the NewMessage component
-				const module = await import('$/components/new-message.svelte');
+				const module = await import('#lib/components/new-message.svelte');
 				NewMessage = module.default as any as typeof NewMessage;
 			} catch (importError) {
 				console.error('Error importing NewMessage component', importError);

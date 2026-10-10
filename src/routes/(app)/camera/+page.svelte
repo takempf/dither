@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { slide } from 'svelte/transition';
 
-	import StylizedWebcamFeed from '$/components/stylized-webcam-feed.svelte';
-	import Button from '$/components/button.svelte';
-	import WebcamPermissionButton from '$/components/webcam-permission-button.svelte';
-	import Progress from '$/components/progress.svelte';
+	import StylizedWebcamFeed from '#lib/components/stylized-webcam-feed.svelte';
+	import Button from '#lib/components/button.svelte';
+	import WebcamPermissionButton from '#lib/components/webcam-permission-button.svelte';
+	import Progress from '#lib/components/progress.svelte';
 
-	import { colorPalette, cameraResolutionId, webcamEnabled } from '$/store.svelte';
-	import { downloadFile, generateGIF } from '$/utils/filmstrip';
-	import { CAMERA_RESOLUTIONS, type CameraResolutionId } from '$/constants';
-	import { generateFilmstripWithCallback } from '$/utils/frames';
+	import { colorPalette, cameraResolutionId, webcamEnabled } from '#lib/store.svelte.js';
+	import { downloadFile, generateGIF } from '#lib/utils/filmstrip.js';
+	import { CAMERA_RESOLUTIONS, type CameraResolutionId } from '#lib/constants.js';
+	import { generateFilmstripWithCallback } from '#lib/utils/frames.js';
 	import { quartOut } from 'svelte/easing';
-	import { hapticBuzz } from '$/utils/vibration';
-	import ResolutionSelector from '$/components/resolution-selector.svelte';
+	import { hapticBuzz } from '#lib/utils/vibration.js';
+	import ResolutionSelector from '#lib/components/resolution-selector.svelte';
 
 	const TOTAL_FRAMES = 20;
 

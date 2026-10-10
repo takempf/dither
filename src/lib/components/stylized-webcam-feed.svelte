@@ -2,9 +2,9 @@
 	import Dither from 'canvas-dither';
 	import throttle from 'just-throttle';
 
-	import { cameras, colorPalette, mediaDeviceId, mediaStream } from '$/store.svelte.js';
-	import { convertImageData } from '$/utils/canvas.js';
-	import { getCrop } from '$/utils/webcam';
+	import { cameras, colorPalette, mediaDeviceId, mediaStream } from '#lib/store.svelte.js';
+	import { convertImageData } from '#lib/utils/canvas.js';
+	import { getCrop } from '#lib/utils/webcam.js';
 
 	const TARGET_WIDTH = 200;
 	const TARGET_HEIGHT = 150;

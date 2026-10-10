@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { scale } from 'svelte/transition';
 
-	import { clamp } from '$/utils/number';
+	import { clamp } from '#lib/utils/number.js';
 
 	interface ProgressPropsT {
 		progress: number;

@@ -4,7 +4,7 @@
 
 	import { scale } from 'svelte/transition';
 
-	import Loading from '$/icons/loading.svelte';
+	import Loading from '#lib/icons/loading.svelte';
 
 	interface Props extends HTMLButtonAttributes {
 		children: Snippet;

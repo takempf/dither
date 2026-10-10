@@ -9,7 +9,7 @@ import {
 	STORE_ROOM_HISTORY,
 	STORE_CAMERA_RESOLUTION_ID,
 	CAMERA_RESOLUTIONS
-} from '$/constants.js';
+} from '#lib/constants.js';
 
 // Ensure `document` is available in the browser
 export const pageVisible: Readable<boolean> = readable(

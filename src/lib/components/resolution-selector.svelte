@@ -1,9 +1,9 @@
 <script lang="ts">
 	import Select from './select.svelte';
 
-	import { cameraResolutionId } from '$/store.svelte';
+	import { cameraResolutionId } from '#lib/store.svelte.js';
 
-	import { CAMERA_RESOLUTIONS, type CameraResolutionId } from '$/constants';
+	import { CAMERA_RESOLUTIONS, type CameraResolutionId } from '#lib/constants.js';
 
 	interface ResolutionOptionT {
 		value: string;

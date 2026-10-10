@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	import { generateGIF, downloadFile } from '$/utils/filmstrip.js';
-	import { convertImageData, drawDitheredNoise } from '$/utils/canvas.js';
-	import { colorPalette } from '$/store.svelte.js';
+	import { generateGIF, downloadFile } from '#lib/utils/filmstrip.js';
+	import { convertImageData, drawDitheredNoise } from '#lib/utils/canvas.js';
+	import { colorPalette } from '#lib/store.svelte.js';
 
 	import Button from './button.svelte';
 

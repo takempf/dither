@@ -1,4 +1,4 @@
-import { CURSOR_URL, CURSOR_POINTER_URL, CURSOR_TEXT_URL } from '$/constants';
+import { CURSOR_URL, CURSOR_POINTER_URL, CURSOR_TEXT_URL } from '#lib/constants.js';
 
 export async function transformCursorColors(
 	originalCursorUrl: string,

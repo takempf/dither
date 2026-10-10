@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { roomHistory } from '$/store.svelte';
-	import X from '$/icons/x.svelte';
+	import { roomHistory } from '#lib/store.svelte.js';
+	import X from '#lib/icons/x.svelte';
 
 	import Button from '../button.svelte';
 

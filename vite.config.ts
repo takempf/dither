@@ -1,4 +1,3 @@
-import path from 'path';
 import adapterStatic from '@sveltejs/adapter-static';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { sveltekit } from '@sveltejs/kit/vite';
@@ -13,8 +12,7 @@ export default defineConfig({
 				assets: 'public',
 				fallback: 'index.html',
 				precompress: true
-			}),
-			alias: { $: path.resolve('./src') }
+			})
 		})
 	]
 });
