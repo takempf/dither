@@ -190,6 +190,9 @@ interface RoomHistoryEntry {
 }
 type RoomHistoryT = Record<string, RoomHistoryEntry>;
 
-export const roomHistory: Writable<RoomHistoryT> = writable(store.get(STORE_ROOM_HISTORY) || []);
+const storedRoomHistory = store.get(STORE_ROOM_HISTORY);
+const initialRoomHistory: RoomHistoryT =
+	storedRoomHistory && !Array.isArray(storedRoomHistory) ? storedRoomHistory : {};
+export const roomHistory: Writable<RoomHistoryT> = writable(initialRoomHistory);
 
 roomHistory.subscribe((updatedRoomHistory) => store.set(STORE_ROOM_HISTORY, updatedRoomHistory));
