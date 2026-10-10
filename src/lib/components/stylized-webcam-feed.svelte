@@ -190,7 +190,7 @@
 		position: relative;
 		cursor: var(--cursor-pointer);
 		clip-path: circle(0%);
-		transition: clip-path 1000ms var(--ease-out-quint);
+		transition: clip-path 600ms var(--ease-in-out-expo);
 		display: block;
 	}
 
@@ -204,7 +204,7 @@
 
 	.display-webcam {
 		background: var(--black);
-		transition: all 500ms cubic-bezier(0.16, 1, 0.3, 1);
+		transition: all 300ms var(--ease-in-out-expo);
 		max-width: 100%;
 	}
 

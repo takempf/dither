@@ -1,10 +1,12 @@
 <script lang="ts">
-	import { expoOut } from 'svelte/easing';
+	import { expoInOut } from 'svelte/easing';
 	import { scale } from 'svelte/transition';
 	import { motion } from '#lib/utils/motion.js';
 
 	import Filmstrip from './filmstrip.svelte';
 	import RenderIfVisible from './render-if-visible.svelte';
+
+	const STAGGER_DELAY = 100; // ms between messages on first render
 
 	interface MessagePropsT {
 		imageUrl: string;
@@ -21,7 +23,12 @@
 <div class="message">
 	<div
 		class="image"
-		in:scale={motion({ duration: 1000, easing: expoOut, opacity: 0, delay: index * 50 })}
+		in:scale={motion({
+			duration: 500,
+			easing: expoInOut,
+			opacity: 0,
+			delay: index * STAGGER_DELAY
+		})}
 	>
 		<RenderIfVisible>
 			<Filmstrip src={imageUrl} fileName={displayText} saveable={interactive} />
@@ -30,9 +37,9 @@
 	<div
 		class="text"
 		in:scale={motion({
-			delay: index * 50 + 500,
-			duration: 500,
-			easing: expoOut,
+			delay: index * STAGGER_DELAY + 250,
+			duration: 300,
+			easing: expoInOut,
 			opacity: 0,
 			start: 0.25
 		})}

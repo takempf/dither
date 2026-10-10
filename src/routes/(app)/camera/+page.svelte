@@ -11,7 +11,7 @@
 	import { downloadFile, generateGIF } from '#lib/utils/filmstrip.js';
 	import { CAMERA_RESOLUTIONS } from '#lib/constants.js';
 	import { generateFilmstripWithCallback } from '#lib/utils/frames.js';
-	import { quartOut } from 'svelte/easing';
+	import { expoInOut } from 'svelte/easing';
 	import { hapticBuzz } from '#lib/utils/vibration.js';
 	import ResolutionSelector from '#lib/components/resolution-selector.svelte';
 
@@ -102,8 +102,8 @@
 		{#if isCapturing}
 			<div
 				class="progress"
-				in:slide={motion({ duration: 250, easing: quartOut })}
-				out:slide={motion({ duration: 500, easing: quartOut, delay: 500 })}
+				in:slide={motion({ duration: 150, easing: expoInOut })}
+				out:slide={motion({ duration: 300, easing: expoInOut, delay: 500 })}
 			>
 				<Progress {progress} />
 			</div>

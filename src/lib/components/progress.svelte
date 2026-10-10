@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { expoInOut } from 'svelte/easing';
 	import { scale } from 'svelte/transition';
 	import { motion } from '#lib/utils/motion.js';
 
@@ -23,8 +24,8 @@
 	{#each items as item (item)}
 		<li
 			class="progressPip"
-			in:scale={motion({ duration: 100 })}
-			out:scale={motion({ duration: 500, delay: 500 })}
+			in:scale={motion({ duration: 100, easing: expoInOut })}
+			out:scale={motion({ duration: 300, easing: expoInOut, delay: 500 })}
 		></li>
 	{/each}
 </ul>

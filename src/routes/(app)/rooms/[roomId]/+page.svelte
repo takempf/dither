@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { quintOut } from 'svelte/easing';
+	import { expoInOut } from 'svelte/easing';
 	import { resolve } from '$app/paths';
 	import { flip } from 'svelte/animate';
 	import { motion } from '#lib/utils/motion.js';
@@ -227,7 +227,7 @@
 		{/if}
 		<ul class="messages">
 			{#each messages as { id, text, imageUrl }, i (id)}
-				<li class="message-container" animate:flip={motion({ duration: 500, easing: quintOut })}>
+				<li class="message-container" animate:flip={motion({ duration: 300, easing: expoInOut })}>
 					<Message {text} {imageUrl} index={i} />
 				</li>
 			{/each}

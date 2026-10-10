@@ -143,7 +143,7 @@
 		top: 50%;
 		left: 50%;
 		transform: translate(-50%, -50%) scale(0);
-		transition: transform 250ms;
+		transition: transform 200ms var(--ease-in-out-expo);
 		font-size: 0.9rem;
 	}
 </style>

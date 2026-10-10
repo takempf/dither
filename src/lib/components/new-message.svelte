@@ -6,6 +6,7 @@
 </script>
 
 <script lang="ts">
+	import { expoInOut } from 'svelte/easing';
 	import { slide } from 'svelte/transition';
 	import { motion } from '#lib/utils/motion.js';
 
@@ -110,8 +111,8 @@
 			{#if isCapturing}
 				<div
 					class="progress"
-					in:slide={motion({ duration: 250 })}
-					out:slide={motion({ duration: 500, delay: 500 })}
+					in:slide={motion({ duration: 150, easing: expoInOut })}
+					out:slide={motion({ duration: 300, easing: expoInOut, delay: 500 })}
 				>
 					<Progress {progress} />
 				</div>
@@ -173,7 +174,7 @@
 		background: none;
 		color: var(--black);
 		overflow: hidden;
-		transition: transform 200ms;
+		transition: transform 200ms var(--ease-in-out-expo);
 		border: transparent 2px solid;
 		border-radius: 0.25em;
 	}
