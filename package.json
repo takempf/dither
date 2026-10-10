@@ -8,7 +8,8 @@
 		"emulators": "firebase emulators:start --only firestore,storage",
 		"deploy": "npm run build && firebase deploy",
 		"preview": "vite preview",
-		"test": "playwright test",
+		"test": "firebase emulators:exec --only firestore,storage \"playwright test\"",
+		"test:e2e": "playwright test",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"lint": "prettier --check . && eslint .",
@@ -17,6 +18,7 @@
 	"devDependencies": {
 		"@eslint/compat": "^2.1.1",
 		"@eslint/js": "^10.0.0",
+		"@firebase/rules-unit-testing": "^6.0.0",
 		"@playwright/test": "^1.64.0",
 		"@sveltejs/adapter-static": "^4.0.0",
 		"@sveltejs/kit": "^3.0.0",

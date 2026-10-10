@@ -9,7 +9,13 @@ import {
 } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
-import { PUBLIC_FIREBASE_API_KEY, PUBLIC_RECAPTCHA_SITE_KEY } from '$app/env/public';
+import {
+	PUBLIC_FIREBASE_API_KEY,
+	PUBLIC_RECAPTCHA_SITE_KEY,
+	PUBLIC_USE_FIREBASE_EMULATORS
+} from '$app/env/public';
+
+const useEmulators = import.meta.env.DEV || PUBLIC_USE_FIREBASE_EMULATORS;
 
 // Vite can re-run this module on HMR, but Firebase only allows setup once
 const isFirstRun = getApps().length === 0;
@@ -34,15 +40,15 @@ export const firebaseStorage = getStorage(firebaseApp);
 firebaseStorage.maxUploadRetryTime = 30_000;
 
 if (isFirstRun) {
-	// the emulators don't check App Check tokens, so only run it in prod builds
-	if (!import.meta.env.DEV && PUBLIC_RECAPTCHA_SITE_KEY) {
+	// the emulators don't check App Check tokens
+	if (!useEmulators && PUBLIC_RECAPTCHA_SITE_KEY) {
 		initializeAppCheck(firebaseApp, {
 			provider: new ReCaptchaEnterpriseProvider(PUBLIC_RECAPTCHA_SITE_KEY),
 			isTokenAutoRefreshEnabled: true
 		});
 	}
 
-	if (import.meta.env.DEV) {
+	if (useEmulators) {
 		connectFirestoreEmulator(firestore, '127.0.0.1', 8080);
 		connectStorageEmulator(firebaseStorage, '127.0.0.1', 9199);
 	}
