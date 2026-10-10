@@ -28,7 +28,7 @@
 	const roomMessagesRef = collection(firestore, `rooms/${data.roomId}/messages`);
 
 	let unreadCount: number = $state(0);
-	let textAreaElement: HTMLTextAreaElement | null;
+	let textAreaElement: HTMLTextAreaElement | undefined = $state();
 	let roomNameInputValue: string = $state(data.roomId);
 
 	// firestore data
@@ -163,20 +163,25 @@
 		}
 	}
 
-	function useResize(element: HTMLElement) {
-		let resizeRAFId: number;
-
-		function resize() {
-			element.style.width = '1px';
-			element.style.width = +element.scrollWidth + 'px';
-			resizeRAFId = window.requestAnimationFrame(resize);
+	// grow the name field to fit its text
+	function fitNameWidth() {
+		if (!textAreaElement) {
+			return;
 		}
-		resizeRAFId = window.requestAnimationFrame(resize);
 
-		return {
-			destroy: () => window.cancelAnimationFrame(resizeRAFId)
-		};
+		textAreaElement.style.width = '1px';
+		textAreaElement.style.width = `${textAreaElement.scrollWidth}px`;
 	}
+
+	$effect(() => {
+		void roomNameInputValue;
+		fitNameWidth();
+	});
+
+	// refit once web fonts change the text width
+	$effect(() => {
+		document.fonts.ready.then(fitNameWidth);
+	});
 </script>
 
 <svelte:head>
@@ -193,8 +198,7 @@
 			bind:this={textAreaElement}
 			bind:value={roomNameInputValue}
 			onblur={handleNameBlur}
-			onkeydown={handleNameKeydown}
-			use:useResize></textarea>
+			onkeydown={handleNameKeydown}></textarea>
 		߷
 	</div>
 	<div class="new-message">
