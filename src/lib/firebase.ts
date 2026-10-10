@@ -4,16 +4,14 @@ import {
 	initializeFirestore,
 	getFirestore,
 	connectFirestoreEmulator,
-	memoryLocalCache,
 	persistentLocalCache,
 	persistentMultipleTabManager
 } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
-import { browser } from '$app/env';
 import { PUBLIC_FIREBASE_API_KEY, PUBLIC_RECAPTCHA_SITE_KEY } from '$app/env/public';
 
-// Vite can re-run this module (HMR, SSR reloads), but Firebase only allows setup once
+// Vite can re-run this module on HMR, but Firebase only allows setup once
 const isFirstRun = getApps().length === 0;
 
 export const firebaseApp = isFirstRun
@@ -26,10 +24,8 @@ export const firebaseApp = isFirstRun
 
 export const firestore = isFirstRun
 	? initializeFirestore(firebaseApp, {
-			// IndexedDB cache in the browser, shared across tabs. No IndexedDB during SSR.
-			localCache: browser
-				? persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-				: memoryLocalCache()
+			// IndexedDB cache, shared across tabs
+			localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 		})
 	: getFirestore(firebaseApp);
 
@@ -39,7 +35,7 @@ firebaseStorage.maxUploadRetryTime = 30_000;
 
 if (isFirstRun) {
 	// the emulators don't check App Check tokens, so only run it in prod builds
-	if (browser && !import.meta.env.DEV && PUBLIC_RECAPTCHA_SITE_KEY) {
+	if (!import.meta.env.DEV && PUBLIC_RECAPTCHA_SITE_KEY) {
 		initializeAppCheck(firebaseApp, {
 			provider: new ReCaptchaEnterpriseProvider(PUBLIC_RECAPTCHA_SITE_KEY),
 			isTokenAutoRefreshEnabled: true

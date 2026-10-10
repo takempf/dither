@@ -1,11 +1,11 @@
-<script>
-	import Nav from '#lib/components/nav.svelte';
+<script lang="ts">
+	import type { Snippet } from 'svelte';
+
+	let { children }: { children: Snippet } = $props();
 </script>
 
-<Nav />
-
 <main class="layout">
-	<slot></slot>
+	{@render children()}
 </main>
 
 <style>

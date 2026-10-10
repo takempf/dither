@@ -7,7 +7,11 @@
 	import '#lib/styles/global.css';
 	import '#lib/styles/crt.css';
 
+	import Nav from '#lib/components/nav.svelte';
+
 	let { children }: { children: Snippet } = $props();
 </script>
+
+<Nav />
 
 {@render children()}
