@@ -10,12 +10,14 @@
 		colorPaletteId.set(value as ColorPaletteId);
 	}
 
-	colorPalette.subscribe(([black, white]) => {
-		document.documentElement.style.setProperty('--black', black);
-		document.documentElement.style.setProperty('--white', white);
+	$effect(() =>
+		colorPalette.subscribe(([black, white]) => {
+			document.documentElement.style.setProperty('--black', black);
+			document.documentElement.style.setProperty('--white', white);
 
-		updateCursorColors(black, white);
-	});
+			updateCursorColors(black, white);
+		})
+	);
 
 	const colorPalettesKeys = Object.keys(COLOR_PALETTES) as (keyof typeof COLOR_PALETTES)[];
 	const options = colorPalettesKeys.map((key) => {
