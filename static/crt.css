@@ -75,7 +75,8 @@
 	display: block;
 	position: fixed;
 	inset: 0;
-	background-image: linear-gradient(rgba(8, 7, 7, 0.225) 50%, rgba(255, 255, 255, 0.025) 50%),
+	background-image:
+		linear-gradient(rgba(8, 7, 7, 0.225) 50%, rgba(255, 255, 255, 0.025) 50%),
 		linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.03), rgba(0, 0, 255, 0.06));
 	z-index: calc(var(--z-screen-effects) + 1);
 	background-size:

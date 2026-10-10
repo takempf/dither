@@ -125,7 +125,8 @@
 
 		.inner {
 			background-color: var(--foreground-color);
-			background-image: linear-gradient(90deg, var(--background-color) 0% 75%, transparent 76% 100%),
+			background-image:
+				linear-gradient(90deg, var(--background-color) 0% 75%, transparent 76% 100%),
 				linear-gradient(var(--white) 0% 75%, transparent 76% 100%);
 			background-size: 4px 4px;
 		}

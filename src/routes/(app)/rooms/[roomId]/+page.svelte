@@ -193,8 +193,7 @@
 			bind:value={roomNameInputValue}
 			onblur={handleNameBlur}
 			onkeypress={handleNameKeypress}
-			use:useResize
-		></textarea>
+			use:useResize></textarea>
 		߷
 	</div>
 	<div class="new-message">
