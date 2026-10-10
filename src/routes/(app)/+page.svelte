@@ -2,6 +2,7 @@
 	import humanId from 'human-id';
 	import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	import { firestore } from '$/firebase';
 	import { roomHistory } from '$/store.svelte';
@@ -25,7 +26,7 @@
 				createdAt: serverTimestamp()
 			});
 
-			await goto(`/rooms/${newRoomDoc.id}`);
+			await goto(resolve('/(app)/rooms/[roomId]', { roomId: newRoomDoc.id }));
 		} catch (error) {
 			console.error('Error creating room', error);
 		} finally {
@@ -34,7 +35,7 @@
 	}
 
 	function handleCameraClick() {
-		goto(`/camera`);
+		goto(resolve('/(app)/camera'));
 	}
 </script>
 

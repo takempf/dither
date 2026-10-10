@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	const { status, error } = $page;
+	import { page } from '$app/state';
 
+	const { status, error } = page;
 	const dev = process.env.NODE_ENV === 'development';
 </script>
 

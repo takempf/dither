@@ -18,8 +18,8 @@
 		"@eslint/compat": "^2.1.1",
 		"@eslint/js": "^10.0.0",
 		"@playwright/test": "^1.64.0",
-		"@sveltejs/adapter-static": "^3.0.10",
-		"@sveltejs/kit": "^2.70.3",
+		"@sveltejs/adapter-static": "^4.0.0",
+		"@sveltejs/kit": "^3.0.0",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@types/eslint": "^9.6.0",
 		"@types/firebase": "^3.2.1",
@@ -43,6 +43,7 @@
 	},
 	"packageManager": "npm@11.19.0",
 	"dependencies": {
+		"@internationalized/date": "^3.12.4",
 		"bits-ui": "^2.19.5",
 		"canvas-dither": "^1.0.1",
 		"firebase": "^10.13.1",
@@ -51,5 +52,9 @@
 		"modern-gif": "^2.0.3",
 		"store2": "^2.14.3",
 		"upng-js": "^2.1.0"
+	},
+	"imports": {
+		"#lib": "./src/lib/index.js",
+		"#lib/*": "./src/lib/*"
 	}
 }

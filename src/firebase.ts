@@ -2,10 +2,10 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
-import { env } from '$env/dynamic/public';
+import { PUBLIC_FIREBASE_API_KEY } from '$app/env/public';
 
 export const firebaseApp = initializeApp({
-	apiKey: env.PUBLIC_FIREBASE_API_KEY,
+	apiKey: PUBLIC_FIREBASE_API_KEY,
 	databaseURL: 'not-firebase-58b83.firebaseapp.com',
 	storageBucket: 'not-firebase-58b83.appspot.com',
 	projectId: 'not-firebase-58b83'
