@@ -3,6 +3,8 @@
 		text: string;
 		imageDataBlob: Blob;
 	}
+
+	export type ActivityT = 'typing' | 'recording';
 </script>
 
 <script lang="ts">
@@ -22,12 +24,15 @@
 	import Progress from './progress.svelte';
 
 	const TOTAL_FRAMES = 20;
+	// stop counting as typing after this long without a keystroke
+	const TYPING_IDLE_MS = 4_000;
 
 	interface Props {
 		onCreateMessage: (message: NewMessageT) => Promise<void>;
+		onActivityChange?: (activity: ActivityT | null) => void;
 	}
 
-	let { onCreateMessage }: Props = $props();
+	let { onCreateMessage, onActivityChange }: Props = $props();
 
 	let videoElement: HTMLVideoElement | undefined = $state();
 	let inputMessage: string = $state('');
@@ -36,6 +41,34 @@
 	let sendError: string | null = $state(null);
 	let currentFrameNumber = $state(0);
 	let progress = $derived((currentFrameNumber / TOTAL_FRAMES) * 100);
+	let isTyping: boolean = $state(false);
+	let typingTimeout: ReturnType<typeof setTimeout> | undefined;
+
+	const activity: ActivityT | null = $derived(
+		isCapturing ? 'recording' : isTyping ? 'typing' : null
+	);
+
+	$effect(() => {
+		onActivityChange?.(activity);
+	});
+
+	$effect(() => {
+		return () => clearTimeout(typingTimeout);
+	});
+
+	function stopTyping() {
+		clearTimeout(typingTimeout);
+		isTyping = false;
+	}
+
+	function handleInput() {
+		stopTyping();
+
+		if (inputMessage) {
+			isTyping = true;
+			typingTimeout = setTimeout(stopTyping, TYPING_IDLE_MS);
+		}
+	}
 
 	async function handleSubmit(event: Event) {
 		event.preventDefault();
@@ -50,6 +83,7 @@
 		}
 
 		sendError = null;
+		stopTyping();
 
 		let imageDataBlob: Blob;
 		try {
@@ -122,6 +156,7 @@
 			<textarea
 				class="input"
 				bind:value={inputMessage}
+				oninput={handleInput}
 				aria-label="Message"
 				maxlength={MESSAGE_TEXT_MAX_LENGTH}
 				onkeydown={handleInputKeydown}

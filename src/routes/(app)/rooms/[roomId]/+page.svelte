@@ -2,6 +2,7 @@
 	import { expoInOut } from 'svelte/easing';
 	import { resolve } from '$app/paths';
 	import { flip } from 'svelte/animate';
+	import { scale } from 'svelte/transition';
 	import { motion } from '#lib/utils/motion.js';
 	import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 	import {
@@ -13,7 +14,9 @@
 		orderBy,
 		limit,
 		serverTimestamp,
-		updateDoc
+		updateDoc,
+		deleteDoc,
+		type DocumentReference
 	} from 'firebase/firestore';
 
 	import { pageVisibility, roomHistory } from '#lib/store.svelte.js';
@@ -21,9 +24,16 @@
 	import { ROOM_NAME_MAX_LENGTH } from '#lib/constants.js';
 
 	import Message from '#lib/components/message.svelte';
-	import NewMessage, { type NewMessageT } from '#lib/components/new-message.svelte';
+	import NewMessage, { type ActivityT, type NewMessageT } from '#lib/components/new-message.svelte';
 
 	const MESSAGES_COUNT = 15;
+	// rewrite our presence this often while active, so others know we're still here
+	const PRESENCE_HEARTBEAT_MS = 5_000;
+	// ignore presence not refreshed in this long, like from a closed tab
+	const PRESENCE_STALE_MS = 15_000;
+
+	// one per tab, so we can skip our own presence
+	const clientId = crypto.randomUUID();
 
 	const { data } = $props();
 
@@ -37,6 +47,8 @@
 	let roomStatus: 'loading' | 'ready' | 'missing' | 'error' = $state('loading');
 	let messages: App.ChatMessageT[] = $state([]);
 	let messagesError: boolean = $state(false);
+	let presence: App.PresenceT[] = $state([]);
+	let now: number = $state(Date.now());
 
 	let roomName: string = $derived(room?.name || data.roomId);
 	// follows roomName until edited
@@ -128,6 +140,108 @@
 	});
 
 	$effect(() => {
+		presence = [];
+
+		// see what everyone else in the room is doing
+		const presenceUnsubscribe = onSnapshot(
+			collection(firestore, `rooms/${data.roomId}/presence`),
+			(presenceSnapshot) => {
+				presence = presenceSnapshot.docs
+					.filter((doc) => doc.id !== clientId)
+					.map((doc) => {
+						const { activity, updatedAt } = doc.data();
+						return { activity, updatedAt };
+					});
+			},
+			(error) => console.error('Error loading presence', error)
+		);
+
+		return () => {
+			presenceUnsubscribe();
+		};
+	});
+
+	// tick while anyone is around, so stale presence drops out
+	$effect(() => {
+		if (presence.length === 0) {
+			return;
+		}
+
+		const interval = setInterval(() => (now = Date.now()), 1_000);
+		return () => clearInterval(interval);
+	});
+
+	const activeCounts = $derived.by(() => {
+		const counts: Record<ActivityT, number> = { typing: 0, recording: 0 };
+		for (const { activity, updatedAt } of presence) {
+			if (updatedAt && now - updatedAt.toMillis() < PRESENCE_STALE_MS) {
+				counts[activity]++;
+			}
+		}
+		return counts;
+	});
+
+	const statusText: string = $derived(
+		(['recording', 'typing'] as const)
+			.filter((activity) => activeCounts[activity] > 0)
+			.map((activity) =>
+				activeCounts[activity] === 1 ? `someone is ${activity}` : `folks are ${activity}`
+			)
+			.join(' · ')
+	);
+
+	// width of the status text, which the status box eases to so the text recenters smoothly
+	let statusTextWidth: number = $state(0);
+
+	// start fresh next time, so it doesn't ease from the last status's width
+	$effect(() => {
+		if (!statusText) {
+			statusTextWidth = 0;
+		}
+	});
+
+	let presenceRef: DocumentReference | undefined;
+	let presenceInterval: ReturnType<typeof setInterval> | undefined;
+
+	function writePresence(activity: ActivityT) {
+		if (!presenceRef) {
+			return;
+		}
+
+		setDoc(presenceRef, { activity, updatedAt: serverTimestamp() }).catch((error) =>
+			console.error('Error saving presence', error)
+		);
+	}
+
+	function clearPresence() {
+		clearInterval(presenceInterval);
+
+		if (presenceRef) {
+			deleteDoc(presenceRef).catch((error) => console.error('Error clearing presence', error));
+			presenceRef = undefined;
+		}
+	}
+
+	// set directly instead of in an effect, so going from typing to recording doesn't delete first
+	function handleActivityChange(activity: ActivityT | null) {
+		if (!activity) {
+			clearPresence();
+			return;
+		}
+
+		clearInterval(presenceInterval);
+		presenceRef = doc(firestore, `rooms/${data.roomId}/presence/${clientId}`);
+		writePresence(activity);
+		presenceInterval = setInterval(() => writePresence(activity), PRESENCE_HEARTBEAT_MS);
+	}
+
+	// clear presence when leaving the room
+	$effect(() => {
+		void data.roomId;
+		return clearPresence;
+	});
+
+	$effect(() => {
 		if (pageVisibility.visible) {
 			unreadCount = 0;
 		}
@@ -192,6 +306,8 @@
 	});
 </script>
 
+<svelte:window onpagehide={clearPresence} />
+
 <svelte:head>
 	<title>{unreadCount ? `[${unreadCount}] ${roomName} - Dither` : `${roomName} - Dither`}</title>
 </svelte:head>
@@ -217,8 +333,20 @@
 			߷
 		</div>
 		<div class="new-message">
-			<NewMessage onCreateMessage={handleCreateMessage} />
+			<NewMessage onCreateMessage={handleCreateMessage} onActivityChange={handleActivityChange} />
 		</div>
+		<p class="statuses" role="status">
+			{#if statusText}
+				<span
+					class="status"
+					style:width={statusTextWidth ? `${statusTextWidth}px` : undefined}
+					in:scale={motion({ duration: 150, easing: expoInOut })}
+					out:scale={motion({ duration: 300, easing: expoInOut })}
+				>
+					<span class="status__text" bind:clientWidth={statusTextWidth}>{statusText}</span>
+				</span>
+			{/if}
+		</p>
 
 		{#if messagesError}
 			<p class="messages-status">Couldn't load messages.</p>
@@ -252,6 +380,25 @@
 	.messages-status {
 		margin: 0;
 		text-align: center;
+	}
+
+	/* keeps its height when empty, so messages don't jump */
+	.statuses {
+		display: flex;
+		justify-content: center;
+		min-height: 1.5em;
+		margin: -0.5em 0;
+		font-size: 0.7em;
+	}
+
+	.status {
+		display: inline-block;
+		white-space: nowrap;
+		transition: width 300ms var(--ease-in-out-expo);
+	}
+
+	.status__text {
+		display: inline-block;
 	}
 
 	.room-name-container {

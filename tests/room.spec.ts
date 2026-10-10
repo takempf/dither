@@ -47,6 +47,23 @@ test('a failed upload shows an error and keeps the text', async ({ page }) => {
 	await expect(message).toHaveValue('this one fails');
 });
 
+test('others see when someone is typing', async ({ page, context }) => {
+	await createRoom(page);
+	await enableWebcam(page);
+
+	const other = await context.newPage();
+	await other.goto(page.url());
+	const status = other.getByRole('status');
+
+	await page.getByRole('textbox', { name: 'Message' }).fill('hi');
+	await expect(status).toHaveText('someone is typing');
+	// our own typing doesn't show
+	await expect(page.getByRole('status')).toHaveText('');
+
+	await page.getByRole('textbox', { name: 'Message' }).fill('');
+	await expect(status).toHaveText('');
+});
+
 test('rename a room', async ({ page }) => {
 	await createRoom(page);
 

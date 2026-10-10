@@ -9,6 +9,7 @@ import {
 import {
 	addDoc,
 	collection,
+	deleteDoc,
 	doc,
 	getDoc,
 	getDocs,
@@ -109,6 +110,34 @@ test.describe('messages', () => {
 		await assertFails(setDoc(doc(messages), { text: 'hi', imageUrl, createdAt }));
 		await assertFails(setDoc(message, { text: 'a'.repeat(281), imageUrl, createdAt }));
 		await assertSucceeds(setDoc(message, { text: 'a'.repeat(280), imageUrl, createdAt }));
+	});
+});
+
+test.describe('presence', () => {
+	test('can be set, read and cleared', async () => {
+		const room = await createRoom();
+		const presence = doc(db, `rooms/${room.id}/presence/${crypto.randomUUID()}`);
+
+		await assertSucceeds(setDoc(presence, { activity: 'typing', updatedAt: serverTimestamp() }));
+		await assertSucceeds(setDoc(presence, { activity: 'recording', updatedAt: serverTimestamp() }));
+		await assertSucceeds(getDocs(collection(db, `rooms/${room.id}/presence`)));
+		await assertSucceeds(deleteDoc(presence));
+	});
+
+	test('reject unknown activities, extra fields and client timestamps', async () => {
+		const room = await createRoom();
+		const presence = doc(db, `rooms/${room.id}/presence/${crypto.randomUUID()}`);
+		const updatedAt = serverTimestamp();
+
+		await assertFails(setDoc(presence, { activity: 'dancing', updatedAt }));
+		await assertFails(setDoc(presence, { activity: 'typing', updatedAt, extra: 1 }));
+		await assertFails(setDoc(presence, { activity: 'typing', updatedAt: new Date() }));
+		await assertFails(
+			setDoc(doc(db, `rooms/${room.id}/presence/${'a'.repeat(37)}`), {
+				activity: 'typing',
+				updatedAt
+			})
+		);
 	});
 });
 

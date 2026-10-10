@@ -32,6 +32,15 @@ service cloud.firestore {
           && isFilmstripUrl(request.resource.data.imageUrl, messageId)
           && request.resource.data.createdAt == request.time;
       }
+
+      // what each open tab is doing, for "someone is typing"
+      match /presence/{clientId} {
+        allow read, delete: if true;
+        allow create, update: if clientId.size() <= 36
+          && request.resource.data.keys().hasOnly(['activity', 'updatedAt'])
+          && request.resource.data.activity in ['typing', 'recording']
+          && request.resource.data.updatedAt == request.time;
+      }
     }
   }
 

@@ -11,6 +11,12 @@ declare namespace App {
 		text?: string;
 	}
 
+	// what another tab in the room is doing
+	interface PresenceT {
+		activity: import('#lib/components/new-message.svelte').ActivityT;
+		updatedAt: FirestoreTimestamp;
+	}
+
 	interface RoomT {
 		createdAt: FirestoreTimestamp;
 		name: string;
