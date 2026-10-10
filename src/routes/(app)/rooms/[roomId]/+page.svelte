@@ -141,13 +141,25 @@
 	}
 
 	async function handleNameBlur() {
-		const roomRef = doc(firestore, 'rooms', data.roomId);
-		await updateDoc(roomRef, { name: roomNameInputValue });
+		const name = roomNameInputValue.trim();
+
+		if (!name || name === room?.name) {
+			roomNameInputValue = roomName;
+			return;
+		}
+
+		try {
+			await updateDoc(doc(firestore, 'rooms', data.roomId), { name });
+		} catch (error) {
+			console.error('Error renaming room', error);
+			roomNameInputValue = roomName;
+		}
 	}
 
-	function handleNameKeypress(event: KeyboardEvent) {
+	function handleNameKeydown(event: KeyboardEvent & { currentTarget: HTMLTextAreaElement }) {
 		if (event.key === 'Enter') {
-			textAreaElement?.blur();
+			event.preventDefault();
+			event.currentTarget.blur();
 		}
 	}
 
@@ -181,7 +193,7 @@
 			bind:this={textAreaElement}
 			bind:value={roomNameInputValue}
 			onblur={handleNameBlur}
-			onkeypress={handleNameKeypress}
+			onkeydown={handleNameKeydown}
 			use:useResize></textarea>
 		߷
 	</div>
