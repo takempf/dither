@@ -11,7 +11,8 @@ export default defineConfig({
 				pages: 'public',
 				assets: 'public',
 				fallback: 'index.html',
-				precompress: true
+				// Firebase Hosting compresses on its own and ignores .br/.gz files
+				precompress: false
 			})
 		})
 	]
