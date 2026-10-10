@@ -24,6 +24,8 @@ export const firestore = initializeFirestore(firebaseApp, {
 		: memoryLocalCache()
 });
 export const firebaseStorage = getStorage(firebaseApp);
+// fail a stuck upload in 30s instead of the default 10 min, so the sender sees an error
+firebaseStorage.maxUploadRetryTime = 30_000;
 
 if (import.meta.env.DEV) {
 	connectFirestoreEmulator(firestore, '127.0.0.1', 8080);
