@@ -14,6 +14,7 @@
 
 	import { webcam } from '#lib/store.svelte.js';
 	import { generateFilmstripWithCallback } from '#lib/utils/frames.js';
+	import { encodeOneBitPng } from '#lib/utils/png.js';
 	import { hapticBuzz } from '#lib/utils/vibration.js';
 	import { MESSAGE_TEXT_MAX_LENGTH } from '#lib/constants.js';
 
@@ -98,15 +99,7 @@
 				height: 150
 			});
 			hapticBuzz();
-			// loaded on first send, to keep the encoder out of the room page bundle
-			const { default: uPNG } = await import('upng-js');
-			const optimizedImageArrayBuffer = uPNG.encode(
-				[filmstripData.data.buffer],
-				filmstripData.width,
-				filmstripData.height,
-				2 + 1
-			);
-			imageDataBlob = new Blob([optimizedImageArrayBuffer], { type: 'image/png' });
+			imageDataBlob = await encodeOneBitPng(filmstripData);
 		} catch (error) {
 			console.error('error generating filmstrip', error);
 			sendError = "Couldn't record a clip. Try again.";

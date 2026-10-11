@@ -23,7 +23,6 @@
 		"@sveltejs/adapter-static": "^4.0.0",
 		"@sveltejs/kit": "^3.0.0",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
-		"@types/upng-js": "^2.1.5",
 		"eslint": "^10.12.0",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.23.1",
@@ -49,8 +48,7 @@
 		"bits-ui": "^2.19.5",
 		"firebase": "^13.0.0",
 		"human-id": "^4.1.1",
-		"modern-gif": "^2.0.3",
-		"upng-js": "^2.1.0"
+		"modern-gif": "^2.0.3"
 	},
 	"imports": {
 		"#lib/*": "./src/lib/*"
