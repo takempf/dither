@@ -4,7 +4,7 @@ type RgbT = readonly [r: number, g: number, b: number];
 
 const parsedColors = new Map<string, RgbT>();
 
-function parseHexColor(hex: string): RgbT {
+export function parseHexColor(hex: string): RgbT {
 	let rgb = parsedColors.get(hex);
 	if (!rgb) {
 		rgb = [
@@ -80,23 +80,4 @@ export function convertImageData(canvas: HTMLCanvasElement, colorPalette: ColorP
 	const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 	recolorImageData(imageData, colorPalette);
 	ctx.putImageData(imageData, 0, 0);
-}
-
-export function drawDitheredNoise(
-	canvasContext: CanvasRenderingContext2D,
-	width: number,
-	height: number
-) {
-	const imageData = canvasContext.createImageData(width, height);
-	const data = imageData.data;
-
-	for (let i = 0; i < data.length; i += 4) {
-		const grayValue = 128 + Math.random() * 10 - 5; // Base gray with slight variation
-		data[i] = grayValue; // Red
-		data[i + 1] = grayValue; // Green
-		data[i + 2] = grayValue; // Blue
-		data[i + 3] = 255; // Alpha (fully opaque)
-	}
-
-	canvasContext.putImageData(atkinsonDither(imageData), 0, 0);
 }

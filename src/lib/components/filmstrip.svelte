@@ -1,6 +1,13 @@
 <script lang="ts">
 	import { generateGIF, downloadFile } from '#lib/utils/filmstrip.js';
-	import { convertImageData, drawDitheredNoise } from '#lib/utils/canvas.js';
+	import {
+		getNoiseStrip,
+		loadStrip,
+		paletteToPixels,
+		renderFrame,
+		stripToImageData,
+		type PackedStripT
+	} from '#lib/utils/strip.js';
 	import { frameTick } from '#lib/utils/ticker.js';
 	import { colorPalette } from '#lib/store.svelte.js';
 
@@ -17,20 +24,17 @@
 
 	let { fileName, src, saveable = true }: Props = $props();
 	let canvasElement: HTMLCanvasElement | undefined = $state();
-	let image: HTMLImageElement | undefined = $state();
+	let strip: PackedStripT | undefined = $state.raw();
 	// first tick seen, so playback starts at frame 0
 	let startTick: number | undefined;
 
 	$effect(() => {
 		let cancelled = false;
-		const img = new Image();
-		// CORS keeps the canvas readable for recoloring
-		img.crossOrigin = 'anonymous';
-		img.src = src;
-		img.decode().then(
-			() => {
+		strip = undefined;
+		loadStrip(src, FRAME_HEIGHT).then(
+			(loadedStrip) => {
 				if (!cancelled) {
-					image = img;
+					strip = loadedStrip;
 				}
 			},
 			(error) => console.error('Error loading filmstrip image', error)
@@ -41,63 +45,35 @@
 		};
 	});
 
-	// the whole strip, recolored once per image or palette change
-	const recoloredStrip = $derived.by(() => {
-		if (!image) {
-			return undefined;
-		}
-
-		const stripCanvas = document.createElement('canvas');
-		stripCanvas.width = image.naturalWidth;
-		stripCanvas.height = image.naturalHeight;
-		stripCanvas.getContext('2d')?.drawImage(image, 0, 0);
-		convertImageData(stripCanvas, colorPalette.colors);
-		return stripCanvas;
-	});
-
 	$effect(() => {
-		const context = canvasElement?.getContext('2d');
+		const context = canvasElement?.getContext('2d', { alpha: false });
 		if (!context) {
 			return;
 		}
 
-		const strip = recoloredStrip;
-		const palette = colorPalette.colors;
+		// still loading, so show animated noise
+		const source = strip ?? getNoiseStrip(FRAME_WIDTH, FRAME_HEIGHT);
+		const colors = paletteToPixels(colorPalette.colors);
+		// one buffer per strip and palette, reused every frame
+		const imageData = context.createImageData(source.width, source.frameHeight);
+		const pixels = new Uint32Array(imageData.data.buffer);
 
 		return frameTick.subscribe((tick) => {
 			startTick ??= tick;
-
-			// still loading, so show animated noise
-			if (!strip) {
-				drawDitheredNoise(context, FRAME_WIDTH, FRAME_HEIGHT);
-				convertImageData(context.canvas, palette);
-				return;
-			}
-
-			const frameCount = Math.max(1, Math.floor(strip.height / FRAME_HEIGHT));
-			const frame = (tick - startTick) % frameCount;
-			context.drawImage(
-				strip,
-				// source
-				0,
-				frame * FRAME_HEIGHT,
-				FRAME_WIDTH,
-				FRAME_HEIGHT,
-				// destination
-				0,
-				0,
-				FRAME_WIDTH,
-				FRAME_HEIGHT
-			);
+			renderFrame(source, (tick - startTick) % source.frameCount, colors, pixels);
+			context.putImageData(imageData, 0, 0);
 		});
 	});
 
 	async function handleDownloadClick() {
-		if (!image) {
+		if (!strip) {
 			return;
 		}
 
-		const gifBlob = await generateGIF(image, colorPalette.colors);
+		const gifBlob = await generateGIF(
+			stripToImageData(strip, colorPalette.colors),
+			colorPalette.colors
+		);
 
 		if (!gifBlob) {
 			console.error('Could not create GIF Blob object');
