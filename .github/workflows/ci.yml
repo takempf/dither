@@ -40,8 +40,9 @@ jobs:
       - run: npm run check
       - run: npm run build
 
-      - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+      # WebKit stands in for iPhone browsers
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
 
       - run: npm test
 

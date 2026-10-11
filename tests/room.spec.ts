@@ -15,22 +15,26 @@ async function enableWebcam(page: Page) {
 	await expect(page.getByRole('textbox', { name: 'Message' })).toBeEnabled();
 }
 
-test('create a room, send a message, and see it after reload', async ({ page }) => {
-	await createRoom(page);
-	await enableWebcam(page);
+test(
+	'create a room, send a message, and see it after reload',
+	{ tag: '@camera' },
+	async ({ page }) => {
+		await createRoom(page);
+		await enableWebcam(page);
 
-	const message = page.getByRole('textbox', { name: 'Message' });
-	await message.fill('hello from playwright');
-	await message.press('Enter');
+		const message = page.getByRole('textbox', { name: 'Message' });
+		await message.fill('hello from playwright');
+		await message.press('Enter');
 
-	await expect(page.getByText('hello from playwright')).toBeVisible({ timeout: 30_000 });
-	await expect(message).toHaveValue('');
+		await expect(page.getByText('hello from playwright')).toBeVisible({ timeout: 30_000 });
+		await expect(message).toHaveValue('');
 
-	await page.reload();
-	await expect(page.getByText('hello from playwright')).toBeVisible();
-});
+		await page.reload();
+		await expect(page.getByText('hello from playwright')).toBeVisible();
+	}
+);
 
-test('a failed upload shows an error and keeps the text', async ({ page }) => {
+test('a failed upload shows an error and keeps the text', { tag: '@camera' }, async ({ page }) => {
 	await createRoom(page);
 	await enableWebcam(page);
 	await page.route(/:9199\/v0\/b\/.+\/o\?/, (route) =>
@@ -47,7 +51,7 @@ test('a failed upload shows an error and keeps the text', async ({ page }) => {
 	await expect(message).toHaveValue('this one fails');
 });
 
-test('others see when someone is typing', async ({ page, context }) => {
+test('others see when someone is typing', { tag: '@camera' }, async ({ page, context }) => {
 	await createRoom(page);
 	await enableWebcam(page);
 

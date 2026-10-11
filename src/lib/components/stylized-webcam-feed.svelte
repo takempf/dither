@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { colorPalette, webcam } from '#lib/store.svelte.js';
 	import { getCrop } from '#lib/utils/webcam.js';
-	import type { WebcamDitherMessageT } from '#lib/workers/webcam-dither.js';
+	import { createWebcamDitherer, type WebcamDitherMessageT } from '#lib/utils/webcam-ditherer.js';
 
 	const TARGET_WIDTH = 200;
 	const TARGET_HEIGHT = 150;
@@ -18,48 +18,64 @@
 		height = TARGET_HEIGHT,
 		videoElement = $bindable()
 	}: Props = $props();
+	interface DithererT {
+		post: (message: WebcamDitherMessageT, transfer?: Transferable[]) => void;
+		// called once a frame is drawn, so the next one can be sent
+		onFrameDone?: () => void;
+		stop: () => void;
+	}
+
 	let displayCanvasElement: HTMLCanvasElement | undefined = $state();
-	let worker: Worker | undefined = $state();
+	let ditherer: DithererT | undefined = $state.raw();
 
 	let webcamVideoStatus = $state('initial');
 
-	function postToWorker(
-		targetWorker: Worker,
-		message: WebcamDitherMessageT,
-		transfer: Transferable[] = []
-	) {
-		targetWorker.postMessage(message, transfer);
+	function createDitherer(canvas: HTMLCanvasElement): DithererT {
+		// a worker keeps dithering off the main thread
+		if (typeof canvas.transferControlToOffscreen === 'function') {
+			const worker = new Worker(new URL('../workers/webcam-dither.ts', import.meta.url), {
+				type: 'module'
+			});
+			const workerDitherer: DithererT = {
+				post: (message, transfer = []) => worker.postMessage(message, transfer),
+				stop: () => worker.terminate()
+			};
+			worker.onmessage = () => workerDitherer.onFrameDone?.();
+			const offscreenCanvas = canvas.transferControlToOffscreen();
+			workerDitherer.post({ type: 'init', canvas: offscreenCanvas }, [offscreenCanvas]);
+			return workerDitherer;
+		}
+
+		// no canvas transfer (Safari before 16.4), so dither on the main thread
+		const mainThreadDitherer: DithererT = {
+			post: (message) => handleMessage(message),
+			stop: () => {}
+		};
+		const handleMessage = createWebcamDitherer(() => mainThreadDitherer.onFrameDone?.());
+		mainThreadDitherer.post({ type: 'init', canvas });
+		return mainThreadDitherer;
 	}
 
-	// the worker draws to the display canvas, so dithering stays off the main thread
 	$effect(() => {
 		if (!displayCanvasElement) {
 			return;
 		}
 
-		const ditherWorker = new Worker(new URL('../workers/webcam-dither.ts', import.meta.url), {
-			type: 'module'
-		});
-		const offscreenCanvas = displayCanvasElement.transferControlToOffscreen();
-		postToWorker(ditherWorker, { type: 'init', canvas: offscreenCanvas }, [offscreenCanvas]);
-		worker = ditherWorker;
+		const newDitherer = createDitherer(displayCanvasElement);
+		ditherer = newDitherer;
 
 		return () => {
-			ditherWorker.terminate();
-			worker = undefined;
+			newDitherer.stop();
+			ditherer = undefined;
 		};
 	});
 
 	$effect(() => {
-		if (worker) {
-			postToWorker(worker, { type: 'resize', width, height });
-		}
+		ditherer?.post({ type: 'resize', width, height });
 	});
 
 	$effect(() => {
-		if (worker) {
-			postToWorker(worker, { type: 'palette', colorPalette: colorPalette.colors });
-		}
+		ditherer?.post({ type: 'palette', colorPalette: colorPalette.colors });
 	});
 
 	$effect(() => {
@@ -70,34 +86,30 @@
 			return;
 		}
 
-		if (!videoElement || !worker) {
+		if (!videoElement || !ditherer) {
 			return;
 		}
 
 		const video = videoElement;
-		const ditherWorker = worker;
+		const activeDitherer = ditherer;
 		video.srcObject = null;
 		video.srcObject = stream;
 		video.play();
 
 		let videoFrameCallbackId = 0;
 		let lastFrameTime = -Infinity;
-		let isWorkerBusy = false;
+		let isDithererBusy = false;
 		let stopped = false;
-
-		function handleWorkerMessage() {
-			isWorkerBusy = false;
-		}
 
 		async function sendFrame(now: DOMHighResTimeStamp) {
 			videoFrameCallbackId = video.requestVideoFrameCallback(sendFrame);
 
-			// skip frames while the worker is busy or the interval hasn't passed
-			if (isWorkerBusy || now - lastFrameTime < FRAME_INTERVAL || !video.videoWidth) {
+			// skip frames while the ditherer is busy or the interval hasn't passed
+			if (isDithererBusy || now - lastFrameTime < FRAME_INTERVAL || !video.videoWidth) {
 				return;
 			}
 
-			isWorkerBusy = true;
+			isDithererBusy = true;
 			lastFrameTime = now;
 
 			try {
@@ -112,20 +124,22 @@
 					return;
 				}
 
-				postToWorker(ditherWorker, { type: 'frame', bitmap }, [bitmap]);
+				activeDitherer.post({ type: 'frame', bitmap }, [bitmap]);
 			} catch (error) {
 				console.error('Could not capture webcam frame', error);
-				isWorkerBusy = false;
+				isDithererBusy = false;
 			}
 		}
 
-		ditherWorker.addEventListener('message', handleWorkerMessage);
+		activeDitherer.onFrameDone = () => {
+			isDithererBusy = false;
+		};
 		videoFrameCallbackId = video.requestVideoFrameCallback(sendFrame);
 
 		return () => {
 			stopped = true;
 			video.cancelVideoFrameCallback(videoFrameCallbackId);
-			ditherWorker.removeEventListener('message', handleWorkerMessage);
+			activeDitherer.onFrameDone = undefined;
 		};
 	});
 
@@ -166,7 +180,8 @@
 	onclick={handleFeedClick}
 >
 	<video
-		class="raw-webcam sekrit"
+		class="raw-webcam"
+		aria-hidden="true"
 		bind:this={videoElement}
 		{width}
 		{height}
@@ -174,8 +189,9 @@
 		onsuspend={handleVideoSuspend}
 		onwaiting={handleVideoWaiting}
 		playsinline={true}
+		muted
 	></video>
-	<!-- size is set in the worker, since the canvas is transferred -->
+	<!-- size is set by the ditherer, since the canvas may be transferred -->
 	<canvas
 		class="display-webcam"
 		bind:this={displayCanvasElement}
@@ -199,6 +215,7 @@
 	}
 
 	.display-webcam {
+		position: relative;
 		display: block;
 	}
 
@@ -208,12 +225,13 @@
 		max-width: 100%;
 	}
 
-	.sekrit {
-		position: fixed;
-		z-index: 9999;
-		top: -9999px;
-		visibility: hidden;
-		display: none;
+	/* rendered under the canvas, since some mobile browsers send no frames for hidden video */
+	.raw-webcam {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
 
 	.switch-camera-icon {
